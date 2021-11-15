@@ -1,137 +1,162 @@
 from enum import Enum
-from functools import reduce
 
-import face_recognition
+import ir
 from z3 import *
 from dsl import *
-import eval
-
-
-def generate_face_library(io_examples):
-    library = []
-    for example in io_examples:
-        for face in example.get_descriptors():
-            seen_previously = False
-            for prev_face in library:
-                # Is this a new face?
-                if face_recognition.compare_faces([prev_face], face, .55)[0]:
-                    # This is not a new face, skip it and move on
-                    seen_previously = True
-                    break
-            if not seen_previously:
-                # This is indeed a new face, add it to the library
-                library.append(face)
-    return library
 
 class Form(Enum):
     DNF = 0
     CNF = 1
 
-def synthesize(io_examples):
-    library = generate_face_library(io_examples)
-    # Map the I/O examples so that the descriptors correspond to elements in the
-    # face library instead of face vectors
-    io_examples_library = []
+def generate_base_library(io_examples):
+    library = set()
     for example in io_examples:
-        mapped_example = IOExample(example.resource)
+        for box in example:
+            library.add(example.get_base(box))
+    return list(library)
 
-        for face in example.get_descriptors():
-            for (i, library_face) in enumerate(library):
-                if face_recognition.compare_faces([library_face], face, .55)[0]:
-                    mapped_example.add_descriptor(i)
-                    if example.has_action(face):
-                        mapped_example.apply_action(i, example[face])
-        io_examples_library.append(mapped_example)
+def generate_precise_library(io_examples):
+    library = set()
+    for example in io_examples:
+        for box in example:
+            library.union(example.get_precise(box))
+    return list(library)
 
-    atomic_predicates = []
-    for (i, _) in enumerate(library):
-        m = Match(i)
-        atomic_predicates.append(m)
-        atomic_predicates.append(NotPred(m))
+class SynthesisState(Enum):
+    ONLY_CLAUSES = 0
+    QUANTIFIERS = 1
 
-    smallest_objective = float('inf')
-    best_program = None
+def synthesize(io_examples):
+    base_library = generate_base_library(io_examples)
+    precise_library = generate_precise_library(io_examples)
 
-    for num_clauses in [10]:
-        s_dnf = Optimize()
-        s_cnf = Optimize()
+    precise_worklist = list(precise_library)
 
-        objective_dnf = 0
-        objective_cnf = 0
-        clauses_dnf = []
-        clauses_cnf = []
-        for clause_i in range(num_clauses):
-            clause_dnf = []
-            clause_cnf = []
-            for pred_i in range(len(atomic_predicates)):
-                name = "v_" + str(pred_i) + "_" + str(clause_i)
-                v_dnf = Bool(name)
-                v_cnf = Bool(name)
-                objective_dnf += If(v_dnf, 1, 0)
-                objective_cnf += If(v_cnf, 1, 0)
-                clause_dnf.append(v_dnf)
-                clause_cnf.append(v_cnf)
-            clauses_dnf.append(clause_dnf)
-            clauses_cnf.append(clause_cnf)
+    synthesized_maps = []
 
-        minimization_dnf = s_dnf.minimize(objective_dnf)
-        minimization_cnf = s_cnf.minimize(objective_cnf)
+    while len(precise_worklist) > 0:
+        precise_label = precise_worklist.pop()
+        synthesis_succeeded = False
+        num_clauses = 5
+        quantifier_nested_level = 1
+        state = SynthesisState.ONLY_CLAUSES
 
-        # For each example
-        for example in io_examples_library:
-            for face_a in example.get_descriptors():
-                atomic_pred_evaluations = []
-                for (face_b, _) in enumerate(library):
-                    if face_b == face_a:
-                        # Evaluate match
-                        atomic_pred_evaluations.append(True)
-                        # Evaluate not match
-                        atomic_pred_evaluations.append(False)
-                    else:
-                        # Evaluate match
-                        atomic_pred_evaluations.append(False)
-                        # Evaluate not match
-                        atomic_pred_evaluations.append(True)
-                action_applied = example.has_action(face_a)
-                concrete_clauses_dnf = Or(
-                    [And(
-                        Or(clause),
-                        And([Implies(variable, evaluation)
-                             for (variable, evaluation) in zip(clause, atomic_pred_evaluations)
-                             if evaluation is not None]))
-                        for clause in clauses_dnf])
-                concrete_clauses_cnf = And(
-                    [Or(
-                        Not(Or(clause)),
-                        Or([And(variable, evaluation)
-                            for (variable, evaluation) in zip(clause, atomic_pred_evaluations)]))
-                        for clause in clauses_cnf])
-                s_dnf.add(concrete_clauses_dnf == action_applied)
-                s_cnf.add(concrete_clauses_cnf == action_applied)
+        while not synthesis_succeeded:
+            if state == SynthesisState.ONLY_CLAUSES:
+                clauses_dnf = []
+                clauses_cnf = []
+                for clause_i in range(num_clauses):
+                    clause_dnf = ir.AndIr([match for label in base_library for match in [ir.MatchIr(ObjectVariable("x"), label, False, ir.get_fresh_toggle_var()), ir.MatchIr("x", label, True, ir.get_fresh_toggle_var())]])
+                    clause_cnf = ir.OrIr([match for label in base_library for match in [ir.MatchIr(ObjectVariable("x"), label, False, ir.get_fresh_toggle_var()), ir.MatchIr("x", label, True, ir.get_fresh_toggle_var())]])
+                    clauses_dnf.append(clause_dnf)
+                    clauses_cnf.append(clause_cnf)
 
-        for (form, s, clauses, minimization) in [(Form.DNF, s_dnf, clauses_dnf, minimization_dnf),
-                                                 (Form.CNF, s_cnf, clauses_cnf, minimization_cnf)]:
-            if s.check() != unsat:
-                m = s.model()
-                objective_value = s.lower(minimization).as_long()
-                if objective_value < smallest_objective:
-                    smallest_objective = objective_value
-                    predicate_clauses = []
-                    for clause in clauses:
-                        pred_clause = []
-                        for (atomic_pred, variable) in zip(atomic_predicates, clause):
-                            if bool(m[variable]):
-                                pred_clause.append(atomic_pred)
-                        if len(pred_clause) > 0:
-                            predicate_clauses.append(pred_clause)
-                    if len(predicate_clauses) > 0:
-                        if form == Form.DNF:
-                            synthesized_pred = reduce(OrPred, [reduce(AndPred, clause) for clause in predicate_clauses])
-                        elif form == Form.CNF:
-                            synthesized_pred = reduce(AndPred, [reduce(OrPred, clause) for clause in predicate_clauses])
-                    else:
-                        synthesized_pred = TruePred()
-                    print("Discovered a new best program with objective value of {}".format(objective_value))
-                    best_program = Program(Blur(), synthesized_pred, library)
-                    print(best_program)
-    return best_program
+                dnf = ir.OrIr(clauses_dnf)
+                cnf = ir.AndIr(clauses_cnf)
+
+                s_dnf = Optimize()
+                s_cnf = Optimize()
+
+                for example in io_examples:
+                    for box in example:
+                        compiled_dnf = dnf.apply({ObjectVariable("x"): example.get_base(box)}, example).to_z3()
+                        compiled_cnf = cnf.apply({ObjectVariable("x"): example.get_base(box)}, example).to_z3()
+                        action_applied = precise_label in example.get_precise(box)
+                        s_dnf.add(compiled_dnf == action_applied)
+                        s_cnf.add(compiled_cnf == action_applied)
+
+                smallest_objective = float('inf')
+
+                minimization_dnf = s_dnf.minimize(dnf.toggle_var_sum())
+                minimization_cnf = s_cnf.minimize(cnf.toggle_var_sum())
+
+                best_program = None
+
+                for (s, ir_nf, minimization) in [(s_dnf, dnf, minimization_dnf),
+                                                 (s_cnf, cnf, minimization_cnf)]:
+                    if s.check() != unsat:
+                        m = s.model()
+                        objective_value = s.lower(minimization).as_long()
+                        if objective_value < smallest_objective:
+                            smallest_objective = objective_value
+                            synthesized_pred = ir.compile(ir_nf, m)
+                            best_program = MapApply(precise_label, Filter(Predicate(ObjectVariable("x"), synthesized_pred), AllObjects()))
+
+                if best_program is not None:
+                    synthesized_maps.append(best_program)
+                    synthesis_succeeded = True
+                else:
+                    # Synthesis failed in this iteration. In the next iteration try synthesis with anys and alls
+                    state = SynthesisState.QUANTIFIERS
+            elif state == SynthesisState.QUANTIFIERS:
+                def rec_generate(level, accum_levels):
+                    level_var = ObjectVariable("x" + str(level))
+                    next_level_var = ObjectVariable("x" + str(level - 1))
+                    next_accum_level = accum_levels + [level_var]
+
+                    clauses_dnf = []
+                    clauses_cnf = []
+                    for clause_i in range(num_clauses):
+                        clause_dnf = [match for label in base_library for match in [ir.MatchIr(level, label, False, ir.get_fresh_toggle_var()), ir.MatchIr(level, label, True, ir.get_fresh_toggle_var())]]
+                        clause_cnf = [match for label in base_library for match in [ir.MatchIr(level, label, False, ir.get_fresh_toggle_var()), ir.MatchIr(level, label, True, ir.get_fresh_toggle_var())]]
+                        for level_a in accum_levels:
+                            for level_b in accum_levels:
+                                if level_a != level_b:
+                                    clause_dnf.append(ir.MatchIr(level_a, level_b, True, ir.get_fresh_toggle_var()))
+                                    clause_dnf.append(ir.MatchIr(level_a, level_b, False, ir.get_fresh_toggle_var()))
+                                    clause_cnf.append(ir.MatchIr(level_a, level_b, True, ir.get_fresh_toggle_var()))
+                                    clause_cnf.append(ir.MatchIr(level_a, level_b, False, ir.get_fresh_toggle_var()))
+                        if level > 0:
+                            (dnf_res, cnf_res) = rec_generate(level - 1, next_accum_level)
+                            clause_dnf.append(ir.AnyIr(next_level_var, dnf_res, ir.get_fresh_toggle_var()))
+                            clause_dnf.append(ir.AllIr(next_level_var, dnf_res, ir.get_fresh_toggle_var()))
+                            clause_cnf.append(ir.AnyIr(next_level_var, cnf_res, ir.get_fresh_toggle_var()))
+                            clause_cnf.append(ir.AllIr(next_level_var, cnf_res, ir.get_fresh_toggle_var()))
+                        clauses_dnf.append(ir.AndIr(clause_dnf))
+                        clauses_cnf.append(ir.OrIr(clause_cnf))
+
+                    dnf = ir.OrIr(clauses_dnf)
+                    cnf = ir.AndIr(clauses_cnf)
+                    return (dnf, cnf)
+
+                (dnf, cnf) = rec_generate(quantifier_nested_level, [])
+
+                s_dnf = Optimize()
+                s_cnf = Optimize()
+
+                outermost_variable = ObjectVariable("x" + str(quantifier_nested_level))
+
+                for example in io_examples:
+                    for box in example:
+                        compiled_dnf = dnf.apply({outermost_variable: example.get_base(box)}, example).to_z3()
+                        compiled_cnf = cnf.apply({outermost_variable: example.get_base(box)}, example).to_z3()
+                        action_applied = precise_label in example.get_precise(box)
+                        s_dnf.add(compiled_dnf == action_applied)
+                        s_cnf.add(compiled_cnf == action_applied)
+
+                smallest_objective = float('inf')
+
+                minimization_dnf = s_dnf.minimize(dnf.toggle_var_sum())
+                minimization_cnf = s_cnf.minimize(cnf.toggle_var_sum())
+
+                best_program = None
+
+                for (s, ir_nf, minimization) in [(s_dnf, dnf, minimization_dnf),
+                                                 (s_cnf, cnf, minimization_cnf)]:
+                    if s.check() != unsat:
+                        m = s.model()
+                        objective_value = s.lower(minimization).as_long()
+                        if objective_value < smallest_objective:
+                            smallest_objective = objective_value
+                            synthesized_pred = ir.compile(ir_nf, m)
+                            best_program = MapApply(precise_label, Filter(Predicate(outermost_variable, synthesized_pred), AllObjects()))
+
+                if best_program is not None:
+                    synthesized_maps.append(best_program)
+                    synthesis_succeeded = True
+                else:
+                    quantifier_nested_level += 1
+                    num_clauses += 5
+                    state = SynthesisState.ONLY_CLAUSES
+
+    return Program(synthesized_maps)
