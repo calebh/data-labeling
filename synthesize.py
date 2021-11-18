@@ -19,7 +19,7 @@ def generate_precise_library(io_examples):
     library = set()
     for example in io_examples:
         for box in example:
-            library.union(example.get_precise(box))
+            library = library.union(example.get_precise(box))
     return list(library)
 
 class SynthesisState(Enum):
@@ -46,8 +46,8 @@ def synthesize(io_examples):
                 clauses_dnf = []
                 clauses_cnf = []
                 for clause_i in range(num_clauses):
-                    clause_dnf = ir.AndIr([match for label in base_library for match in [ir.MatchIr(ObjectVariable("x"), label, False, ir.get_fresh_toggle_var()), ir.MatchIr("x", label, True, ir.get_fresh_toggle_var())]])
-                    clause_cnf = ir.OrIr([match for label in base_library for match in [ir.MatchIr(ObjectVariable("x"), label, False, ir.get_fresh_toggle_var()), ir.MatchIr("x", label, True, ir.get_fresh_toggle_var())]])
+                    clause_dnf = ir.AndIr([match for label in base_library for match in [ir.MatchIr(ObjectVariable("x"), label, False, ir.get_fresh_toggle_var()), ir.MatchIr(ObjectVariable("x"), label, True, ir.get_fresh_toggle_var())]])
+                    clause_cnf = ir.OrIr([match for label in base_library for match in [ir.MatchIr(ObjectVariable("x"), label, False, ir.get_fresh_toggle_var()), ir.MatchIr(ObjectVariable("x"), label, True, ir.get_fresh_toggle_var())]])
                     clauses_dnf.append(clause_dnf)
                     clauses_cnf.append(clause_cnf)
 
@@ -59,8 +59,8 @@ def synthesize(io_examples):
 
                 for example in io_examples:
                     for box in example:
-                        compiled_dnf = dnf.apply({ObjectVariable("x"): example.get_base(box)}, example).to_z3()
-                        compiled_cnf = cnf.apply({ObjectVariable("x"): example.get_base(box)}, example).to_z3()
+                        compiled_dnf = dnf.apply({ObjectVariable("x"): example.get_base(box)}, example).to_z3(ir.Form.DNF)
+                        compiled_cnf = cnf.apply({ObjectVariable("x"): example.get_base(box)}, example).to_z3(ir.Form.CNF)
                         action_applied = precise_label in example.get_precise(box)
                         s_dnf.add(compiled_dnf == action_applied)
                         s_cnf.add(compiled_cnf == action_applied)
@@ -92,20 +92,19 @@ def synthesize(io_examples):
                 def rec_generate(level, accum_levels):
                     level_var = ObjectVariable("x" + str(level))
                     next_level_var = ObjectVariable("x" + str(level - 1))
-                    next_accum_level = accum_levels + [level_var]
+                    next_accum_level = accum_levels + [next_level_var]
 
                     clauses_dnf = []
                     clauses_cnf = []
                     for clause_i in range(num_clauses):
-                        clause_dnf = [match for label in base_library for match in [ir.MatchIr(level, label, False, ir.get_fresh_toggle_var()), ir.MatchIr(level, label, True, ir.get_fresh_toggle_var())]]
-                        clause_cnf = [match for label in base_library for match in [ir.MatchIr(level, label, False, ir.get_fresh_toggle_var()), ir.MatchIr(level, label, True, ir.get_fresh_toggle_var())]]
-                        for level_a in accum_levels:
-                            for level_b in accum_levels:
-                                if level_a != level_b:
-                                    clause_dnf.append(ir.MatchIr(level_a, level_b, True, ir.get_fresh_toggle_var()))
-                                    clause_dnf.append(ir.MatchIr(level_a, level_b, False, ir.get_fresh_toggle_var()))
-                                    clause_cnf.append(ir.MatchIr(level_a, level_b, True, ir.get_fresh_toggle_var()))
-                                    clause_cnf.append(ir.MatchIr(level_a, level_b, False, ir.get_fresh_toggle_var()))
+                        clause_dnf = [match for label in base_library for match in [ir.MatchIr(level_var, label, False, ir.get_fresh_toggle_var()), ir.MatchIr(level_var, label, True, ir.get_fresh_toggle_var())]]
+                        clause_cnf = [match for label in base_library for match in [ir.MatchIr(level_var, label, False, ir.get_fresh_toggle_var()), ir.MatchIr(level_var, label, True, ir.get_fresh_toggle_var())]]
+                        for (i, level_a) in enumerate(accum_levels):
+                            for level_b in accum_levels[i+1:]:
+                                clause_dnf.append(ir.MatchIr(level_a, level_b, True, ir.get_fresh_toggle_var()))
+                                clause_dnf.append(ir.MatchIr(level_a, level_b, False, ir.get_fresh_toggle_var()))
+                                clause_cnf.append(ir.MatchIr(level_a, level_b, True, ir.get_fresh_toggle_var()))
+                                clause_cnf.append(ir.MatchIr(level_a, level_b, False, ir.get_fresh_toggle_var()))
                         if level > 0:
                             (dnf_res, cnf_res) = rec_generate(level - 1, next_accum_level)
                             clause_dnf.append(ir.AnyIr(next_level_var, dnf_res, ir.get_fresh_toggle_var()))
@@ -119,17 +118,19 @@ def synthesize(io_examples):
                     cnf = ir.AndIr(clauses_cnf)
                     return (dnf, cnf)
 
-                (dnf, cnf) = rec_generate(quantifier_nested_level, [])
+                outermost_variable = ObjectVariable("x" + str(quantifier_nested_level))
+
+                (dnf, cnf) = rec_generate(quantifier_nested_level, [outermost_variable])
 
                 s_dnf = Optimize()
                 s_cnf = Optimize()
 
-                outermost_variable = ObjectVariable("x" + str(quantifier_nested_level))
-
                 for example in io_examples:
                     for box in example:
-                        compiled_dnf = dnf.apply({outermost_variable: example.get_base(box)}, example).to_z3()
-                        compiled_cnf = cnf.apply({outermost_variable: example.get_base(box)}, example).to_z3()
+                        compiled_dnf_0 = dnf.apply({outermost_variable: example.get_base(box)}, example)
+                        compiled_dnf = compiled_dnf_0.to_z3(ir.Form.DNF)
+                        compiled_cnf_0 = cnf.apply({outermost_variable: example.get_base(box)}, example)
+                        compiled_cnf = compiled_cnf_0.to_z3(ir.Form.CNF)
                         action_applied = precise_label in example.get_precise(box)
                         s_dnf.add(compiled_dnf == action_applied)
                         s_cnf.add(compiled_cnf == action_applied)

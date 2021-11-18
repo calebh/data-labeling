@@ -1,6 +1,13 @@
+from enum import Enum
+
 import z3
 import dsl
 from functools import reduce
+
+
+class Form(Enum):
+    DNF = 0
+    CNF = 1
 
 class Ir:
     pass
@@ -13,19 +20,17 @@ class OrIr(Ir):
     def apply(self, env, io_example):
         return OrIr([node.apply(env, io_example) for node in self.inner], self.toggle_var)
 
-    def to_z3(self, toggle_var_constructor=None):
-        if toggle_var_constructor is not None:
-            def inner_toggle_var_constructor(inner_toggle_var, evaluation):
-                return z3.And(inner_toggle_var, evaluation)
+    def to_z3(self, form):
+        if form == Form.DNF:
             if self.toggle_var is None:
-                toggle_var = z3.Or([x.toggle_var] for x in self.inner)
+                return z3.Or([x.to_z3(form) for x in self.inner])
             else:
-                toggle_var = self.toggle_var
-            return toggle_var_constructor(toggle_var, z3.Or([x.to_z3(inner_toggle_var_constructor) for x in self.inner]))
-        else:
-            def inner_toggle_var_constructor(inner_toggle_var, evaluation):
-                return z3.And(inner_toggle_var, evaluation)
-            return z3.Or([x.to_z3(inner_toggle_var_constructor) for x in self.inner])
+                return z3.Implies(self.toggle_var, z3.Or([x.to_z3(form) for x in self.inner]))
+        elif form == Form.CNF:
+            if self.toggle_var is None:
+                return z3.Or(z3.Not(z3.Or([x.toggle_var for x in self.inner])), z3.Or([x.to_z3(form) for x in self.inner]))
+            else:
+                return z3.And(self.toggle_var, z3.Or([x.to_z3(form) for x in self.inner]))
 
     def toggle_var_sum(self):
         if self.toggle_var is not None:
@@ -33,7 +38,9 @@ class OrIr(Ir):
         else:
             total = 0
         for x in self.inner:
-            total += x.toggle_var_sum()
+            inner_total = x.toggle_var_sum()
+            if inner_total is not 0:
+                total += inner_total
         return total
 
 class AndIr(Ir):
@@ -44,19 +51,17 @@ class AndIr(Ir):
     def apply(self, env, io_example):
         return AndIr([node.apply(env, io_example) for node in self.inner], self.toggle_var)
 
-    def to_z3(self, toggle_var_constructor=None):
-        if toggle_var_constructor is not None:
-            def inner_toggle_var_constructor(inner_toggle_var, evaluation):
-                return z3.Implies(inner_toggle_var, evaluation)
+    def to_z3(self, form):
+        if form == Form.DNF:
             if self.toggle_var is None:
-                toggle_var = z3.Or([x.toggle_var] for x in self.inner)
+                return z3.And(z3.Or([x.toggle_var for x in self.inner]), z3.And([x.to_z3(form) for x in self.inner]))
             else:
-                toggle_var = self.toggle_var
-            return toggle_var_constructor(toggle_var, z3.And([x.to_z3(inner_toggle_var_constructor) for x in self.inner]))
-        else:
-            def inner_toggle_var_constructor(inner_toggle_var, evaluation):
-                return z3.Or(z3.Not(inner_toggle_var), evaluation)
-            return z3.And([x.to_z3(inner_toggle_var_constructor) for x in self.inner])
+                return z3.Implies(self.toggle_var, z3.And([x.to_z3(form) for x in self.inner]))
+        elif form == Form.CNF:
+            if self.toggle_var is None:
+                return z3.And([x.to_z3(form) for x in self.inner])
+            else:
+                return z3.And(self.toggle_var, z3.And([x.to_z3(form) for x in self.inner]))
 
     def toggle_var_sum(self):
         if self.toggle_var is not None:
@@ -64,7 +69,9 @@ class AndIr(Ir):
         else:
             total = 0
         for x in self.inner:
-            total += x.toggle_var_sum()
+            inner_total = x.toggle_var_sum()
+            if inner_total is not 0:
+                total += inner_total
         return total
 
 class AnyIr(Ir):
@@ -76,16 +83,14 @@ class AnyIr(Ir):
     def apply(self, env, io_example):
         return OrIr([self.inner.apply(env | {self.object_var: io_example.get_base(box)}, io_example) for box in io_example], self.toggle_var)
 
-    def to_z3(self, toggle_var_constructor):
+    def to_z3(self, form):
         raise Exception("Unable to convert partially compiled formula to z3 form. This formula contains an any expression. Try compiling to completely reify all any statements")
 
     def toggle_var_sum(self):
         if self.toggle_var is not None:
-            total = z3.If(self.toggle_var, 1, 0)
+            return z3.If(self.toggle_var, 1, 0) + self.inner.toggle_var_sum()
         else:
-            total = 0
-        total += self.inner.toggle_var_sum()
-        return total
+            return self.inner.toggle_var_sum()
 
 class AllIr(Ir):
     def __init__(self, object_var, inner, toggle_var):
@@ -96,16 +101,14 @@ class AllIr(Ir):
     def apply(self, env, io_example):
         return AndIr([self.inner.apply(env | {self.object_var: io_example.get_base(box)}, io_example) for box in io_example], self.toggle_var)
 
-    def to_z3(self, toggle_var_constructor):
+    def to_z3(self, form):
         raise Exception("Unable to convert partially compiled formula to z3 form. This formula contains an all expression. Try compiling to completely reify all all statements")
 
     def toggle_var_sum(self):
         if self.toggle_var is not None:
-            total = z3.If(self.toggle_var, 1, 0)
+            return z3.If(self.toggle_var, 1, 0) + self.inner.toggle_var_sum()
         else:
-            total = 0
-        total += self.inner.toggle_var_sum()
-        return total
+            return self.inner.toggle_var_sum()
 
 var_index = 0
 
@@ -123,8 +126,11 @@ class BooleanIr(Ir):
     def apply(self, env, io_example):
         return self
 
-    def to_z3(self, toggle_var_constructor):
-        return toggle_var_constructor(self.toggle_var, z3.Bool(self.value))
+    def to_z3(self, form):
+        if form == Form.DNF:
+            return z3.Implies(self.toggle_var, z3.Bool(self.value))
+        elif form == Form.CNF:
+            return z3.And(self.toggle_var, z3.Bool(self.value))
 
     def toggle_var_sum(self):
         if self.toggle_var is not None:

@@ -41,6 +41,9 @@ class ApplyLabel(Action):
     def __hash__(self):
         return hash(self.label_name)
 
+    def __str__(self):
+        return type(self).__name__ + "(" + self.label_name + ")"
+
 class Object(Ast):
     pass
 
@@ -143,6 +146,9 @@ class BoundingBox:
     def to_absolute(self, image_width, image_height):
         return BoundingBox(self.left * image_width, self.top * image_height, self.width * image_width, self.height * image_height)
 
+    def __hash__(self):
+        return hash((self.left, self.top, self.width, self.height))
+
 class ImageResource:
     def __init__(self, path):
         self.path = path
@@ -173,6 +179,13 @@ class IOExample:
 
     def get_base(self, box):
         return self.bounding_boxes[box][0]
+
+    def get_boxes(self, label):
+        ret = []
+        for (box, labels) in self.bounding_boxes.items():
+            if label in labels:
+                ret.append(box)
+        return ret
 
     def __getitem__(self, box):
         return self.bounding_boxes[box]
