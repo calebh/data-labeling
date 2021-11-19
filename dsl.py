@@ -75,11 +75,11 @@ class Predicate(Ast):
 class Boolean(Ast):
     pass
 
-class TruePred(Boolean):
+class TrueBool(Boolean):
     def __str__(self):
         return type(self).__name__ + "()"
 
-class FalsePred(Boolean):
+class FalseBool(Boolean):
     def __str__(self):
         return type(self).__name__ + "()"
 
@@ -91,14 +91,14 @@ class Match(Boolean):
     def __str__(self):
         return type(self).__name__ + "(" + str(self.object_a) + "," + str(self.object_b) + ")"
 
-class NotPred(Boolean):
+class NotBool(Boolean):
     def __init__(self, inner):
         self.inner = inner
 
     def __str__(self):
         return type(self).__name__ + "(" + str(self.inner) + ")"
 
-class OrPred(Boolean):
+class OrBool(Boolean):
     def __init__(self, left, right):
         self.left = left
         self.right = right
@@ -106,7 +106,7 @@ class OrPred(Boolean):
     def __str__(self):
         return type(self).__name__ + "(" + str(self.left) + "," + str(self.right) + ")"
 
-class AndPred(Boolean):
+class AndBool(Boolean):
     def __init__(self, left, right):
         self.left = left
         self.right = right

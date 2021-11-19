@@ -1,5 +1,6 @@
 from enum import Enum
 
+import detect
 import ir
 from z3 import *
 from dsl import *
@@ -37,7 +38,7 @@ def synthesize(io_examples):
     while len(precise_worklist) > 0:
         precise_label = precise_worklist.pop()
         synthesis_succeeded = False
-        num_clauses = 5
+        num_clauses = 1
         quantifier_nested_level = 1
         state = SynthesisState.ONLY_CLAUSES
 
@@ -161,3 +162,17 @@ def synthesize(io_examples):
                     state = SynthesisState.ONLY_CLAUSES
 
     return Program(synthesized_maps)
+
+def main():
+    ex1 = detect.bounding_boxes(ImageResource("images/guitarist1.jpg"))
+    ex1.make_precise(ex1.get_boxes(ObjectLiteral("Person"))[0], ObjectLiteral("Guitarist"))
+
+    ex2 = detect.bounding_boxes(ImageResource("images/guitarist2.jpg"))
+    ex2.make_precise(ex2.get_boxes(ObjectLiteral("Person"))[0], ObjectLiteral("Guitarist"))
+
+    ex3 = detect.bounding_boxes(ImageResource("images/person1.jpg"))
+    ex4 = detect.bounding_boxes(ImageResource("images/person2.jpg"))
+    print(synthesize([ex1, ex2, ex3, ex4]))
+
+if __name__ == "__main__":
+    main()

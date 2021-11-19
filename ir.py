@@ -176,7 +176,7 @@ def compile(ir, z3_solution):
         if ir.toggle_var is None or bool(z3_solution[ir.toggle_var]):
             m = dsl.Match(ir.object_a, ir.object_b)
             if ir.negated:
-                return dsl.NotPred(m)
+                return dsl.NotBool(m)
             else:
                 return m
         else:
@@ -196,7 +196,7 @@ def compile(ir, z3_solution):
             compiled = [compile(x, z3_solution) for x in ir.inner]
             compiled = [x for x in compiled if x is not None]
             if len(compiled) > 0:
-                return reduce(dsl.OrPred, compiled)
+                return reduce(dsl.OrBool, compiled)
             else:
                 return None
         else:
@@ -206,7 +206,7 @@ def compile(ir, z3_solution):
             compiled = [compile(x, z3_solution) for x in ir.inner]
             compiled = [x for x in compiled if x is not None]
             if len(compiled) > 0:
-                return reduce(dsl.AndPred, compiled)
+                return reduce(dsl.AndBool, compiled)
             else:
                 return None
         else:
