@@ -4,6 +4,7 @@ import detect
 import ir
 from z3 import *
 from dsl import *
+import eval
 
 class Form(Enum):
     DNF = 0
@@ -38,7 +39,7 @@ def synthesize(io_examples):
     while len(precise_worklist) > 0:
         precise_label = precise_worklist.pop()
         synthesis_succeeded = False
-        num_clauses = 1
+        num_clauses = 5
         quantifier_nested_level = 1
         state = SynthesisState.ONLY_CLAUSES
 
@@ -165,14 +166,30 @@ def synthesize(io_examples):
 
 def main():
     ex1 = detect.bounding_boxes(ImageResource("images/guitarist1.jpg"))
-    ex1.make_precise(ex1.get_boxes(ObjectLiteral("Person"))[0], ObjectLiteral("Guitarist"))
+    #ex1.remove_boxes(ObjectLiteral("Microphone"))
+    for person in ex1.get_boxes(ObjectLiteral("Person")):
+        ex1.make_precise(person, ObjectLiteral("Guitarist"))
 
     ex2 = detect.bounding_boxes(ImageResource("images/guitarist2.jpg"))
-    ex2.make_precise(ex2.get_boxes(ObjectLiteral("Person"))[0], ObjectLiteral("Guitarist"))
+    #ex2.remove_boxes(ObjectLiteral("Microphone"))
+    for person in ex2.get_boxes(ObjectLiteral("Person")):
+        ex2.make_precise(person, ObjectLiteral("Guitarist"))
 
     ex3 = detect.bounding_boxes(ImageResource("images/person1.jpg"))
+    #ex3.remove_boxes(ObjectLiteral("Microphone"))
     ex4 = detect.bounding_boxes(ImageResource("images/person2.jpg"))
-    print(synthesize([ex1, ex2, ex3, ex4]))
+    #ex4.remove_boxes(ObjectLiteral("Microphone"))
+    prog = synthesize([ex1, ex2, ex3, ex4])
+    print(prog)
+
+    ex1.clear_precise()
+
+    eval.evaluate(ex1, prog)
+
+    print(ex1)
+
+    #prog = synthesize([ex1, ex3])
+    #print(prog)
 
 if __name__ == "__main__":
     main()

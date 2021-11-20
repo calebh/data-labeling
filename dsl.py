@@ -38,6 +38,9 @@ class ApplyLabel(Action):
     def __eq__(self, other):
         return isinstance(other, ApplyLabel) and self.label_name == other.label_name
 
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
     def __hash__(self):
         return hash(self.label_name)
 
@@ -54,6 +57,9 @@ class ObjectLiteral(Object):
     def __eq__(self, other):
         return isinstance(other, ObjectLiteral) and self.label_name == other.label_name
 
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
     def __hash__(self):
         return hash(self.label_name)
 
@@ -63,6 +69,9 @@ class ObjectVariable(Object):
 
     def __eq__(self, other):
         return isinstance(other, ObjectVariable) and self.variable_name == other.variable_name
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
     def __hash__(self):
         return hash(self.variable_name)
@@ -177,6 +186,10 @@ class IOExample:
     def get_precise(self, box):
         return self.bounding_boxes[box][1:]
 
+    def clear_precise(self):
+        for box in self.bounding_boxes:
+            self.bounding_boxes[box] = self.bounding_boxes[box][0:1]
+
     def get_base(self, box):
         return self.bounding_boxes[box][0]
 
@@ -186,6 +199,10 @@ class IOExample:
             if label in labels:
                 ret.append(box)
         return ret
+
+    def remove_boxes(self, label):
+        for box in self.get_boxes(label):
+            self.bounding_boxes.pop(box)
 
     def __getitem__(self, box):
         return self.bounding_boxes[box]

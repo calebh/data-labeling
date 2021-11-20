@@ -183,12 +183,12 @@ def compile(ir, z3_solution):
             return None
     elif isinstance(ir, AnyIr):
         if ir.toggle_var is None or bool(z3_solution[ir.toggle_var]):
-            return dsl.Any(compile(ir.inner, z3_solution))
+            return dsl.Any(dsl.Predicate(ir.object_var, compile(ir.inner, z3_solution)))
         else:
             return None
-    elif isinstance(ir, ir.AllIr):
+    elif isinstance(ir, AllIr):
         if ir.toggle_var is None or bool(z3_solution[ir.toggle_var]):
-            return dsl.All(compile(ir.inner, z3_solution))
+            return dsl.All(dsl.Predicate(ir.object_var, compile(ir.inner, z3_solution)))
         else:
             return None
     elif isinstance(ir, OrIr):
