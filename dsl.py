@@ -1,3 +1,6 @@
+def list_to_string(lst):
+    return "[" + ', '.join([str(x) for x in lst]) + "]"
+
 class Ast:
     def __str__(self):
         return type(self).__name__
@@ -10,23 +13,30 @@ class Program(Ast):
         self.apply_list = apply_list
 
     def __str__(self):
-        return type(self).__name__ + "(" + str(self.apply_list) + ")"
+        return type(self).__name__ + "(" + list_to_string(self.apply_list) + ")"
 
 class MapApply(Ast):
     def __init__(self, action, object_list):
         self.action = action
         self.object_list = object_list
 
+    def __str__(self):
+        return type(self).__name__ + "(" + str(self.action) + ", " + str(self.object_list) + ")"
+
 class ObjectList(Ast):
     pass
 
 class AllObjects(ObjectList):
-    pass
+    def __str__(self):
+        return type(self).__name__
 
 class Filter(ObjectList):
     def __init__(self, predicate, object_list):
         self.predicate = predicate
         self.object_list = object_list
+
+    def __str__(self):
+        return type(self).__name__ + "(" + str(self.predicate) + ", " + str(self.object_list) + ")"
 
 class Action(Ast):
     pass
@@ -63,6 +73,9 @@ class ObjectLiteral(Object):
     def __hash__(self):
         return hash(self.label_name)
 
+    def __str__(self):
+        return type(self).__name__ + "(" + self.label_name + ")"
+
 class ObjectVariable(Object):
     def __init__(self, variable_name):
         self.variable_name = variable_name
@@ -76,10 +89,16 @@ class ObjectVariable(Object):
     def __hash__(self):
         return hash(self.variable_name)
 
+    def __str__(self):
+        return type(self).__name__ + "(" + self.variable_name + ")"
+
 class Predicate(Ast):
     def __init__(self, object_var, boolean):
         self.object_var = object_var
         self.boolean = boolean
+
+    def __str__(self):
+        return type(self).__name__ + "(" + str(self.object_var) + ", " + str(self.boolean) + ")"
 
 class Boolean(Ast):
     pass
@@ -128,14 +147,23 @@ class Any(Boolean):
         self.predicate = predicate
 
     def __str__(self):
-        return type(self).__name__ + "(" + str(self.predicate) + "," + ")"
+        return type(self).__name__ + "(" + str(self.predicate) + ")"
 
 class All(Boolean):
     def __init__(self, predicate):
         self.predicate = predicate
 
     def __str__(self):
-        return type(self).__name__ + "(" + str(self.predicate) + "," + ")"
+        return type(self).__name__ + "(" + str(self.predicate) + ")"
+
+class JaccardIndex(Boolean):
+    def __init__(self, object_a, object_b, threshold):
+        self.object_a = object_a
+        self.object_b = object_b
+        self.threshold = threshold
+
+    def __str__(self):
+        return type(self).__name__ + "(" + str(self.object_a) + "," + str(self.object_b) + "," + str(self.threshold) + ")"
 
 class BoundingBox:
     def __init__(self, left, top, width, height):
@@ -154,6 +182,21 @@ class BoundingBox:
 
     def to_absolute(self, image_width, image_height):
         return BoundingBox(self.left * image_width, self.top * image_height, self.width * image_width, self.height * image_height)
+
+    def jaccard_index(self, other_box):
+        x1 = self.left
+        y1 = self.top
+        x2 = self.left + self.width
+        y2 = self.top + self.height
+
+        x1_other = other_box.left
+        y1_other = other_box.top
+        x2_other = other_box.left + other_box.width
+        y2_other = other_box.top + other_box.height
+
+        intersection_area = max(0, min(x2, x2_other) - max(x1, x1_other)) * max(0, min(y2, y2_other) - max(y1, y1_other))
+        union_area = (x2 - x1) * (y2 - y1) + (x2_other - x1_other) * (y2_other - y1_other) - intersection_area
+        return intersection_area / union_area
 
     def __hash__(self):
         return hash((self.left, self.top, self.width, self.height))

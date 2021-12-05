@@ -23,13 +23,17 @@ class OrIr(Ir):
     def to_z3(self, form):
         if form == Form.DNF:
             if self.toggle_var is None:
+                # This Or clause is in the outermost form, so we should ignore any toggle variable behaviour
                 return z3.Or([x.to_z3(form) for x in self.inner])
             else:
+                # This Or clause is embedded within an And clause as part of an "Any"
                 return z3.Implies(self.toggle_var, z3.Or([x.to_z3(form) for x in self.inner]))
         elif form == Form.CNF:
             if self.toggle_var is None:
+                # This Or clause is embedded within an and clause, so we should compute an equivalent toggle variable
                 return z3.Or(z3.Not(z3.Or([x.toggle_var for x in self.inner])), z3.Or([x.to_z3(form) for x in self.inner]))
             else:
+                # This Or clause is embedded within an Or clause as part of an "Any"
                 return z3.And(self.toggle_var, z3.Or([x.to_z3(form) for x in self.inner]))
 
     def toggle_var_sum(self):
@@ -54,13 +58,17 @@ class AndIr(Ir):
     def to_z3(self, form):
         if form == Form.DNF:
             if self.toggle_var is None:
+                # This And clause is embedded within an Or clause, so we should compute the equivalent toggle variable
                 return z3.And(z3.Or([x.toggle_var for x in self.inner]), z3.And([x.to_z3(form) for x in self.inner]))
             else:
+                # This And clause is embedded within an And clause as part of an "All"
                 return z3.Implies(self.toggle_var, z3.And([x.to_z3(form) for x in self.inner]))
         elif form == Form.CNF:
             if self.toggle_var is None:
+                # This And clause in the outermost form, and we should ignore any toggles
                 return z3.And([x.to_z3(form) for x in self.inner])
             else:
+                # This And clause is embedded within an Or clause as part of an "All"
                 return z3.And(self.toggle_var, z3.And([x.to_z3(form) for x in self.inner]))
 
     def toggle_var_sum(self):
@@ -81,7 +89,7 @@ class AnyIr(Ir):
         self.toggle_var = toggle_var
 
     def apply(self, env, io_example):
-        return OrIr([self.inner.apply(env | {self.object_var: io_example.get_base(box)}, io_example) for box in io_example], self.toggle_var)
+        return OrIr([self.inner.apply(env | {self.object_var: (box, io_example.get_base(box))}, io_example) for box in io_example], self.toggle_var)
 
     def to_z3(self, form):
         raise Exception("Unable to convert partially compiled formula to z3 form. This formula contains an any expression. Try compiling to completely reify all any statements")
@@ -99,7 +107,7 @@ class AllIr(Ir):
         self.toggle_var = toggle_var
 
     def apply(self, env, io_example):
-        return AndIr([self.inner.apply(env | {self.object_var: io_example.get_base(box)}, io_example) for box in io_example], self.toggle_var)
+        return AndIr([self.inner.apply(env | {self.object_var: (box, io_example.get_base(box))}, io_example) for box in io_example], self.toggle_var)
 
     def to_z3(self, form):
         raise Exception("Unable to convert partially compiled formula to z3 form. This formula contains an all expression. Try compiling to completely reify all all statements")
@@ -115,6 +123,12 @@ var_index = 0
 def get_fresh_toggle_var():
     global var_index
     ret = z3.Bool("v" + str(var_index))
+    var_index += 1
+    return ret
+
+def get_fresh_real_var():
+    global var_index
+    ret = z3.Real("r" + str(var_index))
     var_index += 1
     return ret
 
@@ -147,11 +161,11 @@ class MatchIr(Ir):
 
     def apply(self, env, io_example):
         if self.object_a in env:
-            a = env[self.object_a]
+            a = env[self.object_a][1]
         else:
             a = self.object_a
         if self.object_b in env:
-            b = env[self.object_b]
+            b = env[self.object_b][1]
         else:
             b = self.object_b
         if isinstance(a, dsl.ObjectLiteral) and isinstance(b, dsl.ObjectLiteral):
@@ -162,14 +176,71 @@ class MatchIr(Ir):
         else:
             return MatchIr(a, b, self.negated, self.toggle_var)
 
-    def to_z3(self, toggle_var_constructor):
+    def to_z3(self, form):
         raise Exception("Unable to convert partially compiled formula to z3 form. This formula contains a match expression. Try compiling to completely reify all match statements")
+
+    def toggle_var_sum(self):
+        if self.toggle_var is not None:
+            if self.negated:
+                return z3.If(self.toggle_var, 5, 0)
+            else:
+                return z3.If(self.toggle_var, 1, 0)
+            #return z3.If(self.toggle_var, 1, 0)
+        else:
+            return 0
+
+class GeqIr(Ir):
+    def __init__(self, val, comparison_var, toggle_var):
+        self.val = val
+        self.comparison_var = comparison_var
+        self.toggle_var = toggle_var
+
+    def apply(self, env, io_example):
+        return self
+
+    def to_z3(self, form):
+        if form == Form.DNF:
+            return z3.Implies(self.toggle_var, z3.RealVal(self.val) >= self.comparison_var)
+        elif form == Form.CNF:
+            return z3.And(self.toggle_var, z3.RealVal(self.val) >= self.comparison_var)
 
     def toggle_var_sum(self):
         if self.toggle_var is not None:
             return z3.If(self.toggle_var, 1, 0)
         else:
             return 0
+
+
+class JaccardIndexIr(Ir):
+    def __init__(self, object_a, object_b, comparison_var, toggle_var):
+        self.object_a = object_a
+        self.object_b = object_b
+        self.comparison_var = comparison_var
+        self.toggle_var = toggle_var
+
+    def apply(self, env, io_example):
+        if self.object_a in env:
+            a = env[self.object_a][0]
+        else:
+            a = self.object_a
+        if self.object_b in env:
+            b = env[self.object_b][0]
+        else:
+            b = self.object_b
+        if isinstance(a, dsl.BoundingBox) and isinstance(b, dsl.BoundingBox):
+            return GeqIr(a.jaccard_index(b), self.comparison_var, self.toggle_var)
+        else:
+            return JaccardIndexIr(a, b, self.comparison_var, self.toggle_var)
+
+    def to_z3(self, toggle_var_constructor):
+        raise Exception("Unable to convert partially compiled formula to z3 form. This formula contains a jaccard index expression. Try compiling to completely reify all jaccard index statements")
+
+    def toggle_var_sum(self):
+        if self.toggle_var is not None:
+            return z3.If(self.toggle_var, 1, 0)
+        else:
+            return 0
+
 
 def compile(ir, z3_solution):
     if isinstance(ir, MatchIr):
@@ -209,5 +280,10 @@ def compile(ir, z3_solution):
                 return reduce(dsl.AndBool, compiled)
             else:
                 return None
+        else:
+            return None
+    elif isinstance(ir, JaccardIndexIr):
+        if ir.toggle_var is None or bool(z3_solution[ir.toggle_var]):
+            return dsl.JaccardIndex(ir.object_a, ir.object_b, float(z3_solution[ir.comparison_var].as_fraction()))
         else:
             return None

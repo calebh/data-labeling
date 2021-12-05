@@ -61,8 +61,8 @@ def synthesize(io_examples):
 
                 for example in io_examples:
                     for box in example:
-                        compiled_dnf = dnf.apply({ObjectVariable("x"): example.get_base(box)}, example).to_z3(ir.Form.DNF)
-                        compiled_cnf = cnf.apply({ObjectVariable("x"): example.get_base(box)}, example).to_z3(ir.Form.CNF)
+                        compiled_dnf = dnf.apply({ObjectVariable("x"): (box, example.get_base(box))}, example).to_z3(ir.Form.DNF)
+                        compiled_cnf = cnf.apply({ObjectVariable("x"): (box, example.get_base(box))}, example).to_z3(ir.Form.CNF)
                         action_applied = precise_label in example.get_precise(box)
                         s_dnf.add(compiled_dnf == action_applied)
                         s_cnf.add(compiled_cnf == action_applied)
@@ -107,6 +107,8 @@ def synthesize(io_examples):
                                 clause_dnf.append(ir.MatchIr(level_a, level_b, False, ir.get_fresh_toggle_var()))
                                 clause_cnf.append(ir.MatchIr(level_a, level_b, True, ir.get_fresh_toggle_var()))
                                 clause_cnf.append(ir.MatchIr(level_a, level_b, False, ir.get_fresh_toggle_var()))
+                                clause_dnf.append(ir.JaccardIndexIr(level_a, level_b, ir.get_fresh_real_var(), ir.get_fresh_toggle_var()))
+                                clause_cnf.append(ir.JaccardIndexIr(level_a, level_b, ir.get_fresh_real_var(), ir.get_fresh_toggle_var()))
                         if level > 0:
                             (dnf_res, cnf_res) = rec_generate(level - 1, next_accum_level)
                             clause_dnf.append(ir.AnyIr(next_level_var, dnf_res, ir.get_fresh_toggle_var()))
@@ -129,9 +131,9 @@ def synthesize(io_examples):
 
                 for example in io_examples:
                     for box in example:
-                        compiled_dnf_0 = dnf.apply({outermost_variable: example.get_base(box)}, example)
+                        compiled_dnf_0 = dnf.apply({outermost_variable: (box, example.get_base(box))}, example)
                         compiled_dnf = compiled_dnf_0.to_z3(ir.Form.DNF)
-                        compiled_cnf_0 = cnf.apply({outermost_variable: example.get_base(box)}, example)
+                        compiled_cnf_0 = cnf.apply({outermost_variable: (box, example.get_base(box))}, example)
                         compiled_cnf = compiled_cnf_0.to_z3(ir.Form.CNF)
                         action_applied = precise_label in example.get_precise(box)
                         s_dnf.add(compiled_dnf == action_applied)
@@ -179,7 +181,18 @@ def main():
     #ex3.remove_boxes(ObjectLiteral("Microphone"))
     ex4 = detect.bounding_boxes(ImageResource("images/person2.jpg"))
     #ex4.remove_boxes(ObjectLiteral("Microphone"))
-    prog = synthesize([ex1, ex2, ex3, ex4])
+
+    ex5 = detect.bounding_boxes(ImageResource("images/band1.jpg"))
+    people5 = ex5.get_boxes(ObjectLiteral("Person"))
+    people5.sort(key=lambda box: box.left)
+    ex5.make_precise(people5[0], ObjectLiteral("Guitarist"))
+    ex5.make_precise(people5[2], ObjectLiteral("Guitarist"))
+
+    ex6 = detect.bounding_boxes(ImageResource("images/singer1.jpg"))
+
+    ex7 = detect.bounding_boxes(ImageResource("images/street.jpg"))
+
+    prog = synthesize([ex1, ex2, ex3, ex4, ex5])
     print(prog)
 
     ex1.clear_precise()

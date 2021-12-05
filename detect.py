@@ -11,7 +11,7 @@ def bounding_boxes(image_resource):
     for label in response['Labels']:
         name = label['Name']
         for instance in label['Instances']:
-            bounding_box = BoundingBox(instance['BoundingBox']['Top'], instance['BoundingBox']['Left'], instance['BoundingBox']['Width'], instance['BoundingBox']['Height'])
+            bounding_box = BoundingBox(instance['BoundingBox']['Left'], instance['BoundingBox']['Top'], instance['BoundingBox']['Width'], instance['BoundingBox']['Height'])
             ret.add_box(bounding_box, ObjectLiteral(name))
 
     return ret
