@@ -5,6 +5,9 @@ import ir
 from z3 import *
 from dsl import *
 import eval
+from timeit import default_timer as timer
+
+time_taken = 0.0
 
 class Form(Enum):
     DNF = 0
@@ -29,6 +32,7 @@ class SynthesisState(Enum):
     QUANTIFIERS = 1
 
 def synthesize(io_examples):
+    global time_taken
     base_library = generate_base_library(io_examples)
     precise_library = generate_precise_library(io_examples)
 
@@ -76,7 +80,11 @@ def synthesize(io_examples):
 
                 for (s, ir_nf, minimization) in [(s_dnf, dnf, minimization_dnf),
                                                  (s_cnf, cnf, minimization_cnf)]:
-                    if s.check() != unsat:
+                    start = timer()
+                    checked = s.check()
+                    end = timer()
+                    time_taken += end - start
+                    if checked != unsat:
                         m = s.model()
                         objective_value = s.lower(minimization).as_long()
                         if objective_value < smallest_objective:
@@ -148,7 +156,11 @@ def synthesize(io_examples):
 
                 for (s, ir_nf, minimization) in [(s_dnf, dnf, minimization_dnf),
                                                  (s_cnf, cnf, minimization_cnf)]:
-                    if s.check() != unsat:
+                    start = timer()
+                    checked = s.check()
+                    end = timer()
+                    time_taken += end - start
+                    if checked != unsat:
                         m = s.model()
                         objective_value = s.lower(minimization).as_long()
                         if objective_value < smallest_objective:
@@ -192,8 +204,12 @@ def main():
 
     ex7 = detect.bounding_boxes(ImageResource("images/street.jpg"))
 
+    start = timer()
     prog = synthesize([ex1, ex2, ex3, ex4, ex5])
+    end = timer()
     print(prog)
+    print(time_taken)
+    print(end - start)
 
     ex1.clear_precise()
 

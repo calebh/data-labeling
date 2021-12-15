@@ -182,7 +182,7 @@ class MatchIr(Ir):
     def toggle_var_sum(self):
         if self.toggle_var is not None:
             if self.negated:
-                return z3.If(self.toggle_var, 5, 0)
+                return z3.If(self.toggle_var, 1, 0)
             else:
                 return z3.If(self.toggle_var, 1, 0)
             #return z3.If(self.toggle_var, 1, 0)
