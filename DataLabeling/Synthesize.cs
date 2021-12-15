@@ -140,8 +140,7 @@ namespace DataLabeling
                         MapApply? bestProgram = null;
 
                         Action<Optimize, Ir, Optimize.Handle> runZ3 = (Optimize s, Ir nf, Optimize.Handle minimization) => {
-                            Status chked = s.Check();
-                            if (chked != Status.UNSATISFIABLE) {
+                            if (s.Check() == Status.SATISFIABLE) {
                                 Model m = s.Model;
                                 int objectiveValue = ((IntNum)minimization.Lower).Int;
                                 if (objectiveValue < smallestObjective) {
