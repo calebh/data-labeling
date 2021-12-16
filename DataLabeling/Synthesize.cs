@@ -154,19 +154,6 @@ namespace DataLabeling
                         runZ3(s_dnf, dnf, minimizationDnf);
                         runZ3(s_cnf, cnf, minimizationCnf);
 
-                        /*
-                        Action<Optimize, Ir> runZ3 = (Optimize s, Ir nf) => {
-                            if (s.Check() == Status.SATISFIABLE) {
-                                Model m = s.Model;
-                                BooleanAst? synthesizedPred = nf.Compile(m);
-                                bestProgram = new MapApply(preciseLabel, new Filter(new PredicateLambda(outermostVariable, synthesizedPred), new AllObjects()));
-                            }
-                        };
-
-                        runZ3(s_dnf, dnf);//, minimizationDnf);
-                        runZ3(s_cnf, cnf);//, minimizationCnf);
-                        */
-
                         if (bestProgram != null) {
                             synthesizedMaps.Add(bestProgram);
                             synthesisSucceeded = true;

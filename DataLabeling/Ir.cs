@@ -68,18 +68,18 @@ namespace DataLabeling
             if (form == Form.DNF) {
                 if (ToggleVar == null) {
                     // This Or clause is in the outermost form, so we should ignore any toggle variable behaviour
-                    return ctx.MkOr(Inner.Select(x => x.ToZ3(ctx, form)));
+                    return ctx.MkOr(Inner.Select(x => x.ToZ3(ctx, form)).ToArray());
                 } else {
                     // This Or clause is embedded within an And clause as part of an "Any"
-                    return ctx.MkImplies(ToggleVar, ctx.MkOr(Inner.Select(x => x.ToZ3(ctx, form))));
+                    return ctx.MkImplies(ToggleVar, ctx.MkOr(Inner.Select(x => x.ToZ3(ctx, form)).ToArray()));
                 }
             } else if (form == Form.CNF) {
                 if (ToggleVar == null) {
                     // This Or clause is embedded within an and clause, so we should compute an equivalent toggle variable
-                    return ctx.MkOr(ctx.MkNot(ctx.MkOr(Inner.Select(x => x.ToggleVar))), ctx.MkOr(Inner.Select(x => x.ToZ3(ctx, form))));
+                    return ctx.MkOr(ctx.MkNot(ctx.MkOr(Inner.Select(x => x.ToggleVar).ToArray())), ctx.MkOr(Inner.Select(x => x.ToZ3(ctx, form)).ToArray()));
                 } else {
                     // This Or clause is embedded within an Or clause as part of an "Any"
-                    return ctx.MkAnd(ToggleVar, ctx.MkOr(Inner.Select(x => x.ToZ3(ctx, form))));
+                    return ctx.MkAnd(ToggleVar, ctx.MkOr(Inner.Select(x => x.ToZ3(ctx, form)).ToArray()));
                 }
             }
 
@@ -137,18 +137,18 @@ namespace DataLabeling
             if (form == Form.DNF) {
                 if (ToggleVar == null) {
                     // This And clause is embedded within an Or clause, so we should compute the equivalent toggle variable
-                    return ctx.MkAnd(ctx.MkOr(Inner.Select(x => x.ToggleVar)), ctx.MkAnd(Inner.Select(x => x.ToZ3(ctx, form))));
+                    return ctx.MkAnd(ctx.MkOr(Inner.Select(x => x.ToggleVar).ToArray()), ctx.MkAnd(Inner.Select(x => x.ToZ3(ctx, form)).ToArray()));
                 } else {
                     // This And clause is embedded within an And clause as part of an "All"
-                    return ctx.MkImplies(ToggleVar, ctx.MkAnd(Inner.Select(x => x.ToZ3(ctx, form))));
+                    return ctx.MkImplies(ToggleVar, ctx.MkAnd(Inner.Select(x => x.ToZ3(ctx, form)).ToArray()));
                 }
             } else if (form == Form.CNF) {
                 if (ToggleVar == null) {
                     // This And clause in the outermost form, and we should ignore any toggles
-                    return ctx.MkAnd(Inner.Select(x => x.ToZ3(ctx, form)));
+                    return ctx.MkAnd(Inner.Select(x => x.ToZ3(ctx, form)).ToArray());
                 } else {
                     // This And clause is embedded within an Or clause as part of an "All"
-                    return ctx.MkAnd(ToggleVar, ctx.MkAnd(Inner.Select(x => x.ToZ3(ctx, form))));
+                    return ctx.MkAnd(ToggleVar, ctx.MkAnd(Inner.Select(x => x.ToZ3(ctx, form)).ToArray()));
                 }
             }
 
@@ -260,7 +260,7 @@ namespace DataLabeling
         }
 
         public override BoolExpr ToZ3(Context ctx, Form form) {
-            if (form == Form.DNF) {
+            if (form == Form.DNF) {;
                 return ctx.MkImplies(ToggleVar, ctx.MkBool(Value));
             } else {
                 return ctx.MkAnd(ToggleVar, ctx.MkBool(Value));
