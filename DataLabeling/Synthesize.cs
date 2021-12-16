@@ -85,6 +85,8 @@ namespace DataLabeling
                                         clauseCnf.Add(new MatchIr(accumLevels[i], accumLevels[j], false, getFreshToggleVar()));
                                         clauseDnf.Add(new MatchIr(accumLevels[i], accumLevels[j], true, getFreshToggleVar()));
                                         clauseCnf.Add(new MatchIr(accumLevels[i], accumLevels[j], true, getFreshToggleVar()));
+                                        clauseDnf.Add(new IOUIr(accumLevels[i], accumLevels[j], getFreshRealVar(), getFreshToggleVar()));
+                                        clauseCnf.Add(new IOUIr(accumLevels[i], accumLevels[j], getFreshRealVar(), getFreshToggleVar()));
                                     }
                                 }
 
@@ -132,27 +134,38 @@ namespace DataLabeling
                             }
                         }
 
-                        int smallestObjective = int.MaxValue;
+                        //int smallestObjective = int.MaxValue;
 
-                        Optimize.Handle minimizationDnf = s_dnf.MkMinimize(dnf.ToggleVarSum(ctx));
-                        Optimize.Handle minimizationCnf = s_cnf.MkMinimize(cnf.ToggleVarSum(ctx));
+                        List<BoolExpr> toggleVarsDnf = dnf.CollectToggleVars(new List<BoolExpr>());
+                        foreach (BoolExpr tv in toggleVarsDnf) {
+                            s_dnf.AssertSoft(ctx.MkNot(tv), 1, "tv");
+                        }
+
+                        List<BoolExpr> toggleVarsCnf = cnf.CollectToggleVars(new List<BoolExpr>());
+                        foreach (BoolExpr tv in toggleVarsCnf) {
+                            s_cnf.AssertSoft(ctx.MkNot(tv), 1, "tv");
+                        }
 
                         MapApply? bestProgram = null;
 
-                        Action<Optimize, Ir, Optimize.Handle> runZ3 = (Optimize s, Ir nf, Optimize.Handle minimization) => {
+                        Action<Optimize, Ir> runZ3 = (Optimize s, Ir nf) => {
                             if (s.Check() == Status.SATISFIABLE) {
                                 Model m = s.Model;
-                                int objectiveValue = ((IntNum)minimization.Lower).Int;
-                                if (objectiveValue < smallestObjective) {
-                                    smallestObjective = objectiveValue;
+                                //int objectiveValue = ((IntNum)minimization.Lower).Int;
+                                //if (objectiveValue < smallestObjective) {
+                                    //smallestObjective = objectiveValue;
                                     BooleanAst? synthesizedPred = nf.Compile(m);
                                     bestProgram = new MapApply(preciseLabel, new Filter(new PredicateLambda(outermostVariable, synthesizedPred), new AllObjects()));
-                                }
+                                //}
+                            } else {
+                                Console.WriteLine("Unsatisfiable");
                             }
                         };
 
-                        runZ3(s_dnf, dnf, minimizationDnf);
-                        runZ3(s_cnf, cnf, minimizationCnf);
+                        Console.WriteLine("Synthesizing for " + quantifierNestedLevel + " with " + numClauses + " clauses");
+
+                        runZ3(s_dnf, dnf);
+                        runZ3(s_cnf, cnf);
 
                         if (bestProgram != null) {
                             synthesizedMaps.Add(bestProgram);

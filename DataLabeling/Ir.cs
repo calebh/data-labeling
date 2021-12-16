@@ -29,6 +29,8 @@ namespace DataLabeling
         protected bool ToggleSolution(Model z3Solution) {
             return z3Solution.Eval(ToggleVar).BoolValue == Z3_lbool.Z3_L_TRUE;
         }
+
+        public abstract List<BoolExpr> CollectToggleVars(List<BoolExpr> toggleVars);
     }
 
     public class OrIr : Ir
@@ -97,6 +99,16 @@ namespace DataLabeling
             } else {
                 return null;
             }
+        }
+
+        public override List<BoolExpr> CollectToggleVars(List<BoolExpr> toggleVars) {
+            if (ToggleVar != null) {
+                toggleVars.Add(ToggleVar);
+            }
+            foreach (Ir ir in Inner) {
+                ir.CollectToggleVars(toggleVars);
+            }
+            return toggleVars;
         }
     }
 
@@ -167,6 +179,16 @@ namespace DataLabeling
                 return null;
             }
         }
+
+        public override List<BoolExpr> CollectToggleVars(List<BoolExpr> toggleVars) {
+            if (ToggleVar != null) {
+                toggleVars.Add(ToggleVar);
+            }
+            foreach (Ir ir in Inner) {
+                ir.CollectToggleVars(toggleVars);
+            }
+            return toggleVars;
+        }
     }
 
     public class AnyIr : Ir
@@ -201,6 +223,14 @@ namespace DataLabeling
             } else {
                 return null;
             }
+        }
+
+        public override List<BoolExpr> CollectToggleVars(List<BoolExpr> toggleVars) {
+            if (ToggleVar != null) {
+                toggleVars.Add(ToggleVar);
+            }
+            Inner.CollectToggleVars(toggleVars);
+            return toggleVars;
         }
     }
 
@@ -237,6 +267,14 @@ namespace DataLabeling
                 return null;
             }
         }
+
+        public override List<BoolExpr> CollectToggleVars(List<BoolExpr> toggleVars) {
+            if (ToggleVar != null) {
+                toggleVars.Add(ToggleVar);
+            }
+            Inner.CollectToggleVars(toggleVars);
+            return toggleVars;
+        }
     }
 
     public class BooleanIr : Ir
@@ -269,6 +307,13 @@ namespace DataLabeling
 
         public override BooleanAst? Compile(Model z3Solution) {
             throw new NotImplementedException("Cannot compile a boolean to an AST representation");
+        }
+
+        public override List<BoolExpr> CollectToggleVars(List<BoolExpr> toggleVars) {
+            if (ToggleVar != null) {
+                toggleVars.Add(ToggleVar);
+            }
+            return toggleVars;
         }
     }
 
@@ -331,6 +376,13 @@ namespace DataLabeling
                 return null;
             }
         }
+
+        public override List<BoolExpr> CollectToggleVars(List<BoolExpr> toggleVars) {
+            if (ToggleVar != null) {
+                toggleVars.Add(ToggleVar);
+            }
+            return toggleVars;
+        }
     }
 
     public class GeqIr : Ir
@@ -367,6 +419,13 @@ namespace DataLabeling
 
         public override BooleanAst? Compile(Model z3Solution) {
             throw new NotImplementedException("Cannot compile a boolean to an AST representation");
+        }
+
+        public override List<BoolExpr> CollectToggleVars(List<BoolExpr> toggleVars) {
+            if (ToggleVar != null) {
+                toggleVars.Add(ToggleVar);
+            }
+            return toggleVars;
         }
     }
 
@@ -410,6 +469,13 @@ namespace DataLabeling
             } else {
                 return null;
             }
+        }
+
+        public override List<BoolExpr> CollectToggleVars(List<BoolExpr> toggleVars) {
+            if (ToggleVar != null) {
+                toggleVars.Add(ToggleVar);
+            }
+            return toggleVars;
         }
     }
 }
