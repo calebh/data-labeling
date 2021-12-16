@@ -30,7 +30,7 @@ namespace DataLabeling
             return result.ToList();
         }
 
-        public static Program DoSynthesis(List<IOExample> examples) {
+        public static ProgramAst DoSynthesis(List<IOExample> examples) {
             using (Context ctx = new Context(new Dictionary<string, string>() { { "model", "true" } })) {
                 int varIndex = 0;
                 Func<BoolExpr> getFreshToggleVar = () => {
@@ -154,6 +154,19 @@ namespace DataLabeling
                         runZ3(s_dnf, dnf, minimizationDnf);
                         runZ3(s_cnf, cnf, minimizationCnf);
 
+                        /*
+                        Action<Optimize, Ir> runZ3 = (Optimize s, Ir nf) => {
+                            if (s.Check() == Status.SATISFIABLE) {
+                                Model m = s.Model;
+                                BooleanAst? synthesizedPred = nf.Compile(m);
+                                bestProgram = new MapApply(preciseLabel, new Filter(new PredicateLambda(outermostVariable, synthesizedPred), new AllObjects()));
+                            }
+                        };
+
+                        runZ3(s_dnf, dnf);//, minimizationDnf);
+                        runZ3(s_cnf, cnf);//, minimizationCnf);
+                        */
+
                         if (bestProgram != null) {
                             synthesizedMaps.Add(bestProgram);
                             synthesisSucceeded = true;
@@ -168,7 +181,7 @@ namespace DataLabeling
                     }
                 }
 
-                return new Program(synthesizedMaps);
+                return new ProgramAst(synthesizedMaps);
             }
         }
     }

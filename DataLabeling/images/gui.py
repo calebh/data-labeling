@@ -97,14 +97,15 @@ def process_image(image_path):
 
     return (width, height, [(box, name, precise_label) for ((box, name), precise_label) in zip(boxes, precise_labels)])
 
-accumulated_info = {}
+accumulated_info = []
 
 image_paths = sys.argv[1:-1]
 for img in image_paths:
     (width, height, box_info) = process_image(img)
-    accumulated_info[img] = {"Boxes": [], "Width": width, "Height": height}
+    data = {"Path": img, "Boxes": [], "Width": width, "Height": height}
     for (box, name, precise_label) in box_info:
-        accumulated_info[img]["Boxes"].append({"Box": box.to_dict(), "Name": name, "PreciseLabel": precise_label})
+        data["Boxes"].append({"Box": box.to_dict(), "Label": name, "PreciseLabel": precise_label})
+    accumulated_info.append(data)
 
 output_path = sys.argv[-1]
 f = open(output_path, "w")

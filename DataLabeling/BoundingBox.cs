@@ -8,10 +8,10 @@ namespace DataLabeling
 {
     public class BoundingBox
     {
-        public readonly double Left;
-        public readonly double Top;
-        public readonly double Width;
-        public readonly double Height;
+        public double Left { get; set; }
+        public double Top { get; set; }
+        public double Width { get; set; }
+        public double Height { get; set; }
 
         public BoundingBox(double left, double top, double width, double height) {
             Left = left;

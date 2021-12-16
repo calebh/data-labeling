@@ -22,7 +22,7 @@ namespace DataLabeling
 
         public abstract BoolExpr ToZ3(Context ctx, Form form);
 
-        public abstract ArithExpr ToggleVarSum(Context ctx);
+        public abstract ArithExpr? ToggleVarSum(Context ctx);
 
         public abstract BooleanAst? Compile(Model z3Solution);
 
@@ -44,16 +44,24 @@ namespace DataLabeling
         }
 
         public override ArithExpr ToggleVarSum(Context ctx) {
-            ArithExpr total;
             if (ToggleVar != null) {
-                total = (ArithExpr) ctx.MkITE(ToggleVar, ctx.MkInt(1), ctx.MkInt(0));
+                ArithExpr total = (ArithExpr)ctx.MkITE(ToggleVar, ctx.MkInt(1), ctx.MkInt(0));
+                foreach (Ir r in Inner) {
+                    total = total + r.ToggleVarSum(ctx);
+                }
+                return total;
             } else {
-                total = ctx.MkInt(0);
+                ArithExpr? total = null;
+                foreach (Ir r in Inner) {
+                    ArithExpr? res = r.ToggleVarSum(ctx);
+                    if (total == null) {
+                        total = res;
+                    } else if (res != null) {
+                        total = total + r.ToggleVarSum(ctx);
+                    }
+                }
+                return total;
             }
-            foreach (Ir r in Inner) {
-                total = total + r.ToggleVarSum(ctx);
-            }
-            return total;
         }
 
         public override BoolExpr ToZ3(Context ctx, Form form) {
@@ -104,17 +112,25 @@ namespace DataLabeling
             return new AndIr(Inner.Select(node => node.Apply(env, example)).ToList(), ToggleVar);
         }
 
-        public override ArithExpr ToggleVarSum(Context ctx) {
-            ArithExpr total;
+        public override ArithExpr? ToggleVarSum(Context ctx) {
             if (ToggleVar != null) {
-                total = (ArithExpr)ctx.MkITE(ToggleVar, ctx.MkInt(1), ctx.MkInt(0));
+                ArithExpr total = (ArithExpr)ctx.MkITE(ToggleVar, ctx.MkInt(1), ctx.MkInt(0));
+                foreach (Ir r in Inner) {
+                    total = total + r.ToggleVarSum(ctx);
+                }
+                return total;
             } else {
-                total = ctx.MkInt(0);
+                ArithExpr? total = null;
+                foreach (Ir r in Inner) {
+                    ArithExpr? res = r.ToggleVarSum(ctx);
+                    if (total == null) {
+                        total = res;
+                    } else if (res != null) {
+                        total = total + r.ToggleVarSum(ctx);
+                    }
+                }
+                return total;
             }
-            foreach (Ir r in Inner) {
-                total = total + r.ToggleVarSum(ctx);
-            }
-            return total;
         }
 
         public override BoolExpr ToZ3(Context ctx, Form form) {
@@ -167,7 +183,7 @@ namespace DataLabeling
             return new OrIr(example.GetBoxes().Select(box => Inner.Apply(env.Add(ObjVar, Tuple.Create(box, example.GetBase(box))), example)).ToList(), ToggleVar);
         }
 
-        public override ArithExpr ToggleVarSum(Context ctx) {
+        public override ArithExpr? ToggleVarSum(Context ctx) {
             if (ToggleVar != null) {
                 return (ArithExpr)ctx.MkITE(ToggleVar, ctx.MkInt(1), ctx.MkInt(0)) + Inner.ToggleVarSum(ctx);
             } else {
@@ -202,7 +218,7 @@ namespace DataLabeling
             return new AndIr(example.GetBoxes().Select(box => Inner.Apply(env.Add(ObjVar, Tuple.Create(box, example.GetBase(box))), example)).ToList(), ToggleVar);
         }
 
-        public override ArithExpr ToggleVarSum(Context ctx) {
+        public override ArithExpr? ToggleVarSum(Context ctx) {
             if (ToggleVar != null) {
                 return (ArithExpr)ctx.MkITE(ToggleVar, ctx.MkInt(1), ctx.MkInt(0)) + Inner.ToggleVarSum(ctx);
             } else {
@@ -235,11 +251,11 @@ namespace DataLabeling
             return this;
         }
 
-        public override ArithExpr ToggleVarSum(Context ctx) {
+        public override ArithExpr? ToggleVarSum(Context ctx) {
             if (ToggleVar != null) {
                 return (ArithExpr) ctx.MkITE(ToggleVar, ctx.MkInt(1), ctx.MkInt(0));
             } else {
-                return ctx.MkInt(0);
+                return null;
             }
         }
 
@@ -291,11 +307,11 @@ namespace DataLabeling
             }
         }
 
-        public override ArithExpr ToggleVarSum(Context ctx) {
+        public override ArithExpr? ToggleVarSum(Context ctx) {
             if (ToggleVar != null) {
                 return (ArithExpr)ctx.MkITE(ToggleVar, ctx.MkInt(1), ctx.MkInt(0));
             } else {
-                return ctx.MkInt(0);
+                return null;
             }
         }
 
@@ -331,11 +347,11 @@ namespace DataLabeling
             return this;
         }
 
-        public override ArithExpr ToggleVarSum(Context ctx) {
+        public override ArithExpr? ToggleVarSum(Context ctx) {
             if (ToggleVar != null) {
                 return (ArithExpr)ctx.MkITE(ToggleVar, ctx.MkInt(1), ctx.MkInt(0));
             } else {
-                return ctx.MkInt(0);
+                return null;
             }
         }
 
@@ -376,11 +392,11 @@ namespace DataLabeling
             }
         }
 
-        public override ArithExpr ToggleVarSum(Context ctx) {
+        public override ArithExpr? ToggleVarSum(Context ctx) {
             if (ToggleVar != null) {
                 return (ArithExpr) ctx.MkITE(ToggleVar, ctx.MkInt(1), ctx.MkInt(0));
             } else {
-                return ctx.MkInt(0);
+                return null;
             }
         }
 

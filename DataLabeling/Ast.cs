@@ -11,11 +11,11 @@ namespace DataLabeling
 
     }
 
-    public class Program : Ast
+    public class ProgramAst : Ast
     {
         public List<MapApply> ApplyList { get; private set; }
 
-        public Program(List<MapApply> applyList) {
+        public ProgramAst(List<MapApply> applyList) {
             ApplyList = applyList;
         } 
     }
