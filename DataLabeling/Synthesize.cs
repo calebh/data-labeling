@@ -51,12 +51,14 @@ namespace DataLabeling
                 List<MapApply> synthesizedMaps = new List<MapApply>();
 
                 foreach (ObjectLiteral preciseLabel in preciseLibrary) {
-                    int numClauses = 5;
+                    List<int> numClausesPerQuantLevel = new List<int> { 5 };
                     int quantifierNestedLevel = 0;
+
                     bool synthesisSucceeded = false;
-                    bool incrementQuantifierLevel = true;
+                    bool incrementedQuantifierLevel = true;
 
                     while (!synthesisSucceeded) {
+                        int numClauses = numClausesPerQuantLevel[quantifierNestedLevel];
 
                         Func<int, List<ObjectVariable>, Tuple<Ir, Ir>> recursivelyGenerate = null;
                         recursivelyGenerate = (int level, List<ObjectVariable> accumLevels) => {
@@ -134,7 +136,7 @@ namespace DataLabeling
                             }
                         }
 
-                        //int smallestObjective = int.MaxValue;
+                        int smallestObjective = int.MaxValue;
 
                         List<BoolExpr> toggleVarsDnf = dnf.CollectToggleVars(new List<BoolExpr>());
                         foreach (BoolExpr tv in toggleVarsDnf) {
@@ -148,21 +150,19 @@ namespace DataLabeling
 
                         MapApply? bestProgram = null;
 
+                        Console.WriteLine("Synthesizing with " + numClauses + " at " + quantifierNestedLevel + " deep");
+
                         Action<Optimize, Ir> runZ3 = (Optimize s, Ir nf) => {
                             if (s.Check() == Status.SATISFIABLE) {
                                 Model m = s.Model;
-                                //int objectiveValue = ((IntNum)minimization.Lower).Int;
-                                //if (objectiveValue < smallestObjective) {
-                                    //smallestObjective = objectiveValue;
+                                int objectiveValue = ((IntNum)m.Eval(nf.ToggleVarSum(ctx)).Simplify()).Int;
+                                if (objectiveValue < smallestObjective) {
+                                    smallestObjective = objectiveValue;
                                     BooleanAst? synthesizedPred = nf.Compile(m);
                                     bestProgram = new MapApply(preciseLabel, new Filter(new PredicateLambda(outermostVariable, synthesizedPred), new AllObjects()));
-                                //}
-                            } else {
-                                Console.WriteLine("Unsatisfiable");
+                                }
                             }
                         };
-
-                        Console.WriteLine("Synthesizing for " + quantifierNestedLevel + " with " + numClauses + " clauses");
 
                         runZ3(s_dnf, dnf);
                         runZ3(s_cnf, cnf);
@@ -170,13 +170,18 @@ namespace DataLabeling
                         if (bestProgram != null) {
                             synthesizedMaps.Add(bestProgram);
                             synthesisSucceeded = true;
-                        } else {
-                            if (incrementQuantifierLevel) {
-                                quantifierNestedLevel++;
+                        }
+
+                        numClausesPerQuantLevel[quantifierNestedLevel] += 2;
+                        quantifierNestedLevel++;
+                        if (quantifierNestedLevel == numClausesPerQuantLevel.Count) {
+                            if (!incrementedQuantifierLevel) {
+                                numClausesPerQuantLevel.Add(5);
+                                incrementedQuantifierLevel = true;
                             } else {
-                                numClauses += 5;
+                                quantifierNestedLevel = 0;
+                                incrementedQuantifierLevel = false;
                             }
-                            incrementQuantifierLevel = !incrementQuantifierLevel;
                         }
                     }
                 }
