@@ -17,7 +17,11 @@ namespace DataLabeling
 
         public ProgramAst(List<MapApply> applyList) {
             ApplyList = applyList;
-        } 
+        }
+
+        public override string ToString() {
+            return String.Format("Program({0})", String.Join(", ", ApplyList.Select(m => m.ToString())));
+        }
     }
 
     public class MapApply : Ast
@@ -29,6 +33,10 @@ namespace DataLabeling
             Action = action;
             ObjectList = objectList;
         }
+
+        public override string ToString() {
+            return String.Format("Map({0}, {1})", Action.ToString(), ObjectList.ToString());
+        }
     }
 
     public abstract class ObjectList : Ast
@@ -39,6 +47,10 @@ namespace DataLabeling
     public class AllObjects : ObjectList
     {
         public AllObjects() { }
+
+        public override string ToString() {
+            return "AllObjects()";
+        }
     }
 
     public class Filter : ObjectList
@@ -49,6 +61,10 @@ namespace DataLabeling
         public Filter(PredicateLambda predicate, ObjectList objectList) {
             Predicate = predicate;
             ObjectList = objectList;
+        }
+
+        public override string ToString() {
+            return String.Format("Filter({0}, {1})", Predicate.ToString(), ObjectList.ToString());
         }
     }
 
@@ -77,6 +93,10 @@ namespace DataLabeling
         public override int GetHashCode() {
             return LabelName.GetHashCode();
         }
+
+        public override string ToString() {
+            return String.Format("\"{0}\"", LabelName);
+        }
     }
 
     public class ObjectVariable : ObjectAst
@@ -98,6 +118,10 @@ namespace DataLabeling
         public bool Equals(ObjectVariable other) {
             return other != null && VariableName == other.VariableName;
         }
+
+        public override string ToString() {
+            return VariableName;
+        }
     }
 
     public class PredicateLambda : Ast
@@ -109,6 +133,10 @@ namespace DataLabeling
             VarName = varName;
             Body = body;
         }
+
+        public override string ToString() {
+            return string.Format("fun {0} -> {1}", VarName.ToString(), Body.ToString());
+        }
     }
 
     public abstract class BooleanAst : Ast {
@@ -118,11 +146,19 @@ namespace DataLabeling
     public class TrueBool : BooleanAst
     {
         public TrueBool() { }
+
+        public override string ToString() {
+            return "true";
+        }
     }
 
     public class FalseBool : BooleanAst
     {
         public FalseBool() { }
+
+        public override string ToString() {
+            return "false";
+        }
     }
 
     public class Match : BooleanAst
@@ -134,6 +170,10 @@ namespace DataLabeling
             ObjectA = objectA;
             ObjectB = objectB;
         }
+
+        public override string ToString() {
+            return string.Format("Match({0}, {1})", ObjectA.ToString(), ObjectB.ToString());
+        }
     }
 
     public class NotBool : BooleanAst
@@ -142,6 +182,10 @@ namespace DataLabeling
 
         public NotBool(BooleanAst inner) {
             Inner = inner;
+        }
+
+        public override string ToString() {
+            return string.Format("!{0}", Inner.ToString());
         }
     }
 
@@ -154,6 +198,10 @@ namespace DataLabeling
             Left = left;
             Right = right;
         }
+
+        public override string ToString() {
+            return string.Format("({0} || {1})", Left.ToString(), Right.ToString());
+        }
     }
 
     public class AndBool : BooleanAst
@@ -165,6 +213,10 @@ namespace DataLabeling
             Left = left;
             Right = right;
         }
+
+        public override string ToString() {
+            return string.Format("({0} && {1})", Left.ToString(), Right.ToString());
+        }
     }
 
     public class Any : BooleanAst
@@ -174,6 +226,10 @@ namespace DataLabeling
         public Any(PredicateLambda predicate) {
             Predicate = predicate;
         }
+
+        public override string ToString() {
+            return string.Format("Any({0})", Predicate.ToString());
+        }
     }
 
     public class All : BooleanAst
@@ -182,6 +238,10 @@ namespace DataLabeling
 
         public All(PredicateLambda predicate) {
             Predicate = predicate;
+        }
+
+        public override string ToString() {
+            return string.Format("All({0})", Predicate.ToString());
         }
     }
 
@@ -195,6 +255,10 @@ namespace DataLabeling
             ObjectA = objectA;
             ObjectB = objectB;
             Threshold = threshold;
+        }
+
+        public override string ToString() {
+            return string.Format("IOU({0}, {1}) >= {2}", ObjectA.ToString(), ObjectB.ToString(), Threshold);
         }
     }
 }

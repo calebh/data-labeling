@@ -10,9 +10,16 @@ namespace DataLabeling
             BoundingBox foo = new BoundingBox(0.0, 0.0, 0.0, 0.0);
             string exampleFile = "images/example.json";
             List<IOExample> examples = Json.JsonMethods.Read(exampleFile);
-            ProgramAst ast = Synthesize.DoSynthesis(examples);
+            List<List<MapApply>> ast = Synthesize.DoSynthesis(examples);
 
-            Console.WriteLine("Done");
+            foreach (List<MapApply> mapApplyEquivalenceClass in ast) {
+                Console.WriteLine("Equivalence class for " + mapApplyEquivalenceClass[0].Action.LabelName);
+                foreach (MapApply program in mapApplyEquivalenceClass) {
+                    Console.WriteLine(program);
+                }
+            }
+
+            Console.ReadLine();
         }
     }
 }

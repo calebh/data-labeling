@@ -30,7 +30,7 @@ namespace DataLabeling
             return result.ToList();
         }
 
-        public static ProgramAst DoSynthesis(List<IOExample> examples) {
+        public static List<List<MapApply>> DoSynthesis(List<IOExample> examples) {
             using (Context ctx = new Context(new Dictionary<string, string>() { { "model", "true" } })) {
                 int varIndex = 0;
                 Func<BoolExpr> getFreshToggleVar = () => {
@@ -48,7 +48,7 @@ namespace DataLabeling
                 List<ObjectLiteral> baseLibrary = GenerateBaseLibrary(examples);
                 List<ObjectLiteral> preciseLibrary = GeneratePreciseLibrary(examples);
 
-                List<MapApply> synthesizedMaps = new List<MapApply>();
+                List<List<MapApply>> synthesizedMaps = new List<List<MapApply>>();
 
                 foreach (ObjectLiteral preciseLabel in preciseLibrary) {
                     List<int> numClausesPerQuantLevel = new List<int> { 5 };
@@ -148,27 +148,35 @@ namespace DataLabeling
                             s_cnf.AssertSoft(ctx.MkNot(tv), 1, "tv");
                         }
 
-                        MapApply? bestProgram = null;
+                        List<MapApply> bestPrograms = new List<MapApply>();
 
                         Console.WriteLine("Synthesizing with " + numClauses + " at " + quantifierNestedLevel + " deep");
 
-                        Action<Optimize, Ir> runZ3 = (Optimize s, Ir nf) => {
-                            if (s.Check() == Status.SATISFIABLE) {
-                                Model m = s.Model;
-                                int objectiveValue = ((IntNum)m.Eval(nf.ToggleVarSum(ctx)).Simplify()).Int;
-                                if (objectiveValue < smallestObjective) {
-                                    smallestObjective = objectiveValue;
-                                    BooleanAst? synthesizedPred = nf.Compile(m);
-                                    bestProgram = new MapApply(preciseLabel, new Filter(new PredicateLambda(outermostVariable, synthesizedPred), new AllObjects()));
+                        Action<Optimize, Ir, List<BoolExpr>> runZ3 = (Optimize s, Ir nf, List<BoolExpr> toggleVars) => {
+                            while (bestPrograms.Count < 10) {
+                                if (s.Check() == Status.SATISFIABLE) {
+                                    Model m = s.Model;
+                                    int objectiveValue = ((IntNum)m.Eval(nf.ToggleVarSum(ctx)).Simplify()).Int;
+                                    if (objectiveValue <= smallestObjective) {
+                                        smallestObjective = objectiveValue;
+                                        BooleanAst? synthesizedPred = nf.Compile(m);
+                                        bestPrograms.Add(new MapApply(preciseLabel, new Filter(new PredicateLambda(outermostVariable, synthesizedPred), new AllObjects())));
+                                        // Add the constraint that we are looking for a solution that is different from the one we just found
+                                        s.Add(ctx.MkOr(toggleVars.Select(tv => ctx.MkXor(tv, (BoolExpr)m.Eval(tv))).ToArray()));
+                                    } else {
+                                        break;
+                                    }
+                                } else {
+                                    break;
                                 }
                             }
                         };
 
-                        runZ3(s_dnf, dnf);
-                        runZ3(s_cnf, cnf);
+                        runZ3(s_dnf, dnf, toggleVarsDnf);
+                        runZ3(s_cnf, cnf, toggleVarsCnf);
 
-                        if (bestProgram != null) {
-                            synthesizedMaps.Add(bestProgram);
+                        if (bestPrograms.Count > 0) {
+                            synthesizedMaps.Add(bestPrograms);
                             synthesisSucceeded = true;
                         }
 
@@ -186,7 +194,7 @@ namespace DataLabeling
                     }
                 }
 
-                return new ProgramAst(synthesizedMaps);
+                return synthesizedMaps;
             }
         }
     }
