@@ -138,14 +138,20 @@ namespace DataLabeling
 
                         int smallestObjective = int.MaxValue;
 
-                        List<BoolExpr> toggleVarsDnf = dnf.CollectToggleVars(new List<BoolExpr>());
-                        foreach (BoolExpr tv in toggleVarsDnf) {
+                        Tuple<List<BoolExpr>, List<BoolExpr>> toggleVarsDnf = dnf.CollectToggleVars();
+                        foreach (BoolExpr tv in toggleVarsDnf.Item1) {
                             s_dnf.AssertSoft(ctx.MkNot(tv), 1, "tv");
                         }
+                        foreach (BoolExpr tv in toggleVarsDnf.Item2) {
+                            s_dnf.AssertSoft(ctx.MkNot(tv), 2, "tv");
+                        }
 
-                        List<BoolExpr> toggleVarsCnf = cnf.CollectToggleVars(new List<BoolExpr>());
-                        foreach (BoolExpr tv in toggleVarsCnf) {
+                        Tuple<List<BoolExpr>, List<BoolExpr>> toggleVarsCnf = cnf.CollectToggleVars();
+                        foreach (BoolExpr tv in toggleVarsCnf.Item1) {
                             s_cnf.AssertSoft(ctx.MkNot(tv), 1, "tv");
+                        }
+                        foreach (BoolExpr tv in toggleVarsCnf.Item2) {
+                            s_cnf.AssertSoft(ctx.MkNot(tv), 2, "tv");
                         }
 
                         List<MapApply> bestPrograms = new List<MapApply>();
@@ -172,8 +178,8 @@ namespace DataLabeling
                             }
                         };
 
-                        runZ3(s_dnf, dnf, toggleVarsDnf);
-                        runZ3(s_cnf, cnf, toggleVarsCnf);
+                        runZ3(s_dnf, dnf, toggleVarsDnf.Item1.Concat(toggleVarsDnf.Item2).ToList());
+                        runZ3(s_cnf, cnf, toggleVarsCnf.Item1.Concat(toggleVarsCnf.Item2).ToList());
 
                         if (bestPrograms.Count > 0) {
                             synthesizedMaps.Add(bestPrograms);

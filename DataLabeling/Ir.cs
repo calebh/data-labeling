@@ -30,7 +30,14 @@ namespace DataLabeling
             return z3Solution.Eval(ToggleVar).BoolValue == Z3_lbool.Z3_L_TRUE;
         }
 
-        public abstract List<BoolExpr> CollectToggleVars(List<BoolExpr> toggleVars);
+        public abstract Tuple<List<BoolExpr>, List<BoolExpr>> CollectToggleVars(Tuple<List<BoolExpr>, List<BoolExpr>> toggleVars);
+
+        // CollectToggleVars returns a tuple of two lists. The first list is those toggle variables
+        // which are positive (ie, a plain match). The secon list is toggle variables which are negative
+        // (ie, destructive aka not matches)
+        public Tuple<List<BoolExpr>, List<BoolExpr>> CollectToggleVars() {
+            return CollectToggleVars(Tuple.Create(new List<BoolExpr>(), new List<BoolExpr>()));
+        }
     }
 
     public class OrIr : Ir
@@ -101,9 +108,9 @@ namespace DataLabeling
             }
         }
 
-        public override List<BoolExpr> CollectToggleVars(List<BoolExpr> toggleVars) {
+        public override Tuple<List<BoolExpr>, List<BoolExpr>> CollectToggleVars(Tuple<List<BoolExpr>, List<BoolExpr>> toggleVars) {
             if (ToggleVar != null) {
-                toggleVars.Add(ToggleVar);
+                toggleVars.Item1.Add(ToggleVar);
             }
             foreach (Ir ir in Inner) {
                 ir.CollectToggleVars(toggleVars);
@@ -180,9 +187,9 @@ namespace DataLabeling
             }
         }
 
-        public override List<BoolExpr> CollectToggleVars(List<BoolExpr> toggleVars) {
+        public override Tuple<List<BoolExpr>, List<BoolExpr>> CollectToggleVars(Tuple<List<BoolExpr>, List<BoolExpr>> toggleVars) {
             if (ToggleVar != null) {
-                toggleVars.Add(ToggleVar);
+                toggleVars.Item1.Add(ToggleVar);
             }
             foreach (Ir ir in Inner) {
                 ir.CollectToggleVars(toggleVars);
@@ -225,9 +232,9 @@ namespace DataLabeling
             }
         }
 
-        public override List<BoolExpr> CollectToggleVars(List<BoolExpr> toggleVars) {
+        public override Tuple<List<BoolExpr>, List<BoolExpr>> CollectToggleVars(Tuple<List<BoolExpr>, List<BoolExpr>> toggleVars) {
             if (ToggleVar != null) {
-                toggleVars.Add(ToggleVar);
+                toggleVars.Item1.Add(ToggleVar);
             }
             Inner.CollectToggleVars(toggleVars);
             return toggleVars;
@@ -268,9 +275,9 @@ namespace DataLabeling
             }
         }
 
-        public override List<BoolExpr> CollectToggleVars(List<BoolExpr> toggleVars) {
+        public override Tuple<List<BoolExpr>, List<BoolExpr>> CollectToggleVars(Tuple<List<BoolExpr>, List<BoolExpr>> toggleVars) {
             if (ToggleVar != null) {
-                toggleVars.Add(ToggleVar);
+                toggleVars.Item1.Add(ToggleVar);
             }
             Inner.CollectToggleVars(toggleVars);
             return toggleVars;
@@ -309,9 +316,9 @@ namespace DataLabeling
             throw new NotImplementedException("Cannot compile a boolean to an AST representation");
         }
 
-        public override List<BoolExpr> CollectToggleVars(List<BoolExpr> toggleVars) {
+        public override Tuple<List<BoolExpr>, List<BoolExpr>> CollectToggleVars(Tuple<List<BoolExpr>, List<BoolExpr>> toggleVars) {
             if (ToggleVar != null) {
-                toggleVars.Add(ToggleVar);
+                toggleVars.Item1.Add(ToggleVar);
             }
             return toggleVars;
         }
@@ -377,9 +384,13 @@ namespace DataLabeling
             }
         }
 
-        public override List<BoolExpr> CollectToggleVars(List<BoolExpr> toggleVars) {
+        public override Tuple<List<BoolExpr>, List<BoolExpr>> CollectToggleVars(Tuple<List<BoolExpr>, List<BoolExpr>> toggleVars) {
             if (ToggleVar != null) {
-                toggleVars.Add(ToggleVar);
+                if (Negated) {
+                    toggleVars.Item2.Add(ToggleVar);
+                } else {
+                    toggleVars.Item1.Add(ToggleVar);
+                }
             }
             return toggleVars;
         }
@@ -421,9 +432,9 @@ namespace DataLabeling
             throw new NotImplementedException("Cannot compile a boolean to an AST representation");
         }
 
-        public override List<BoolExpr> CollectToggleVars(List<BoolExpr> toggleVars) {
+        public override Tuple<List<BoolExpr>, List<BoolExpr>> CollectToggleVars(Tuple<List<BoolExpr>, List<BoolExpr>> toggleVars) {
             if (ToggleVar != null) {
-                toggleVars.Add(ToggleVar);
+                toggleVars.Item1.Add(ToggleVar);
             }
             return toggleVars;
         }
@@ -471,9 +482,9 @@ namespace DataLabeling
             }
         }
 
-        public override List<BoolExpr> CollectToggleVars(List<BoolExpr> toggleVars) {
+        public override Tuple<List<BoolExpr>, List<BoolExpr>> CollectToggleVars(Tuple<List<BoolExpr>, List<BoolExpr>> toggleVars) {
             if (ToggleVar != null) {
-                toggleVars.Add(ToggleVar);
+                toggleVars.Item1.Add(ToggleVar);
             }
             return toggleVars;
         }
