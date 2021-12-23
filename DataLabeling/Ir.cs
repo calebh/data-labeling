@@ -361,7 +361,11 @@ namespace DataLabeling
 
         public override ArithExpr? ToggleVarSum(Context ctx) {
             if (ToggleVar != null) {
-                return (ArithExpr)ctx.MkITE(ToggleVar, ctx.MkInt(1), ctx.MkInt(0));
+                if (Negated) {
+                    return (ArithExpr)ctx.MkITE(ToggleVar, ctx.MkInt(2), ctx.MkInt(0));
+                } else {
+                    return (ArithExpr)ctx.MkITE(ToggleVar, ctx.MkInt(1), ctx.MkInt(0));
+                }
             } else {
                 return null;
             }
