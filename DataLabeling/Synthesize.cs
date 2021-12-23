@@ -168,7 +168,7 @@ namespace DataLabeling
                                         BooleanAst? synthesizedPred = nf.Compile(m);
                                         bestPrograms.Add(new MapApply(preciseLabel, new Filter(new PredicateLambda(outermostVariable, synthesizedPred), new AllObjects())));
                                         // Add the constraint that we are looking for a solution that is different from the one we just found
-                                        s.Add(ctx.MkOr(toggleVars.Select(tv => ctx.MkXor(tv, (BoolExpr)m.Eval(tv))).ToArray()));
+                                        s.Add(ctx.MkOr(toggleVars.Where(tv => m.Eval(tv).BoolValue == Z3_lbool.Z3_L_TRUE).Select(tv => ctx.MkIff(tv, ctx.MkFalse())).ToArray()));
                                     } else {
                                         break;
                                     }
