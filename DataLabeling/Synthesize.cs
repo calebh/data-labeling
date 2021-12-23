@@ -89,6 +89,10 @@ namespace DataLabeling
                                         clauseCnf.Add(new MatchIr(accumLevels[i], accumLevels[j], true, getFreshToggleVar()));
                                         clauseDnf.Add(new IOUIr(accumLevels[i], accumLevels[j], getFreshRealVar(), getFreshToggleVar()));
                                         clauseCnf.Add(new IOUIr(accumLevels[i], accumLevels[j], getFreshRealVar(), getFreshToggleVar()));
+                                        clauseDnf.Add(new ContainmentIr(accumLevels[i], accumLevels[j], getFreshRealVar(), getFreshToggleVar()));
+                                        clauseCnf.Add(new ContainmentIr(accumLevels[i], accumLevels[j], getFreshRealVar(), getFreshToggleVar()));
+                                        clauseDnf.Add(new ContainmentIr(accumLevels[j], accumLevels[i], getFreshRealVar(), getFreshToggleVar()));
+                                        clauseCnf.Add(new ContainmentIr(accumLevels[j], accumLevels[i], getFreshRealVar(), getFreshToggleVar()));
                                     }
                                 }
 

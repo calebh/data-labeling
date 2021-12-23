@@ -493,4 +493,54 @@ namespace DataLabeling
             return toggleVars;
         }
     }
+
+    public class ContainmentIr : Ir
+    {
+        public readonly ObjectVariable Container;
+        public readonly ObjectVariable Contained;
+        public RealExpr ComparisonVar;
+
+        public ContainmentIr(ObjectVariable container, ObjectVariable contained, RealExpr comparisonVar, BoolExpr toggleVar) : base(toggleVar) {
+            Container = container;
+            Contained = contained;
+            ComparisonVar = comparisonVar;
+        }
+
+        public override Ir Apply(ImmutableDictionary<ObjectVariable, Tuple<BoundingBox, ObjectLiteral>> env, IOExample example) {
+            if (env.ContainsKey(Container) && env.ContainsKey(Contained)) {
+                BoundingBox boxA = env[Container].Item1;
+                BoundingBox boxB = env[Contained].Item1;
+                return new GeqIr(boxA.ContainmentFraction(boxB), ComparisonVar, ToggleVar);
+            } else {
+                throw new KeyNotFoundException("Unable to find keys in environment when applying an IOU node");
+            }
+        }
+
+        public override ArithExpr? ToggleVarSum(Context ctx) {
+            if (ToggleVar != null) {
+                return (ArithExpr)ctx.MkITE(ToggleVar, ctx.MkInt(1), ctx.MkInt(0));
+            } else {
+                return null;
+            }
+        }
+
+        public override BoolExpr ToZ3(Context ctx, Form form) {
+            throw new NotImplementedException("Unable to convert partially compiled formula to z3 form. This formula contains a IOU expression. Try compiling to completely reify all IOU statements");
+        }
+
+        public override BooleanAst? Compile(Model z3Solution) {
+            if (ToggleVar == null || ToggleSolution(z3Solution)) {
+                return new Containment(Container, Contained, ((RatNum)z3Solution.Eval(ComparisonVar)).Double);
+            } else {
+                return null;
+            }
+        }
+
+        public override Tuple<List<BoolExpr>, List<BoolExpr>> CollectToggleVars(Tuple<List<BoolExpr>, List<BoolExpr>> toggleVars) {
+            if (ToggleVar != null) {
+                toggleVars.Item1.Add(ToggleVar);
+            }
+            return toggleVars;
+        }
+    }
 }

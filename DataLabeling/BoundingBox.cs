@@ -35,5 +35,25 @@ namespace DataLabeling
             double union_area = (x2 - x1) * (y2 - y1) + (x2_other - x1_other) * (y2_other - y1_other) - intersection_area;
             return intersection_area / union_area;
         }
+
+        public double ContainmentFraction(BoundingBox other) {
+            double x1 = Left;
+            double y1 = Top;
+            double x2 = Left + Width;
+            double y2 = Top + Height;
+
+            double x1Other = other.Left;
+            double y1Other = other.Top;
+            double x2Other = other.Left + other.Width;
+            double y2Other = other.Top + other.Height;
+
+            double x1OtherClipped = Math.Clamp(x1Other, x1, x2);
+            double y1OtherClipped = Math.Clamp(y1Other, y1, y2);
+            double x2OtherClipped = Math.Clamp(x2Other, x1, x2);
+            double y2OtherClipped = Math.Clamp(y2Other, y1, y2);
+
+            double clippedArea = (x2OtherClipped - x1OtherClipped) * (y2OtherClipped - y1OtherClipped);
+            return clippedArea / (Width * Height);
+        }
     }
 }

@@ -261,4 +261,21 @@ namespace DataLabeling
             return string.Format("IOU({0}, {1}) >= {2}", ObjectA.ToString(), ObjectB.ToString(), Threshold);
         }
     }
+
+    public class Containment : BooleanAst
+    {
+        public readonly ObjectAst Container;
+        public readonly ObjectAst Contained;
+        public readonly double Threshold;
+
+        public Containment(ObjectAst container, ObjectAst contained, double threshold) {
+            Container = container;
+            Contained = contained;
+            Threshold = threshold;
+        }
+
+        public override string ToString() {
+            return string.Format("Containment({0}, {1}) >= {2}", Container.ToString(), Contained.ToString(), Threshold);
+        }
+    }
 }
