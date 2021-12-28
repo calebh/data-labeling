@@ -495,6 +495,206 @@ namespace DataLabeling
         }
     }
 
+    public class LeftIr : Ir
+    {
+        public readonly ObjectVariable ObjA;
+        public readonly ObjectVariable ObjB;
+
+        public LeftIr(ObjectVariable objA, ObjectVariable objB, BoolExpr toggleVar) : base(toggleVar) {
+            ObjA = objA;
+            ObjB = objB;
+        }
+
+        public override Ir Apply(ImmutableDictionary<ObjectVariable, Tuple<BoundingBox, ObjectLiteral>> env, IOExample example) {
+            if (env.ContainsKey(ObjA) && env.ContainsKey(ObjB)) {
+                BoundingBox boxA = env[ObjA].Item1;
+                BoundingBox boxB = env[ObjB].Item1;
+                double aX = boxA.Left + (boxA.Width / 2.0);
+                double bX = boxB.Left + (boxB.Width / 2.0);
+                return new BooleanIr(aX <= bX, ToggleVar);
+            } else {
+                throw new KeyNotFoundException("Unable to find keys in environment when applying a Left node");
+            }
+        }
+
+        public override ArithExpr? ToggleVarSum(Context ctx) {
+            if (ToggleVar != null) {
+                return (ArithExpr)ctx.MkITE(ToggleVar, ctx.MkInt(1), ctx.MkInt(0));
+            } else {
+                return null;
+            }
+        }
+
+        public override BoolExpr ToZ3(Context ctx, Form form) {
+            throw new NotImplementedException("Unable to convert partially compiled formula to z3 form. This formula contains a IOU expression. Try compiling to completely reify all IOU statements");
+        }
+
+        public override BooleanAst? Compile(Model z3Solution) {
+            if (ToggleVar == null || ToggleSolution(z3Solution)) {
+                return new Left(ObjA, ObjB);
+            } else {
+                return null;
+            }
+        }
+
+        public override List<Tuple<BoolExpr, uint>> CollectToggleVars(List<Tuple<BoolExpr, uint>> toggleVars) {
+            if (ToggleVar != null) {
+                toggleVars.Add(Tuple.Create<BoolExpr, uint>(ToggleVar, 1));
+            }
+            return toggleVars;
+        }
+    }
+
+    public class RightIr : Ir
+    {
+        public readonly ObjectVariable ObjA;
+        public readonly ObjectVariable ObjB;
+
+        public RightIr(ObjectVariable objA, ObjectVariable objB, BoolExpr toggleVar) : base(toggleVar) {
+            ObjA = objA;
+            ObjB = objB;
+        }
+
+        public override Ir Apply(ImmutableDictionary<ObjectVariable, Tuple<BoundingBox, ObjectLiteral>> env, IOExample example) {
+            if (env.ContainsKey(ObjA) && env.ContainsKey(ObjB)) {
+                BoundingBox boxA = env[ObjA].Item1;
+                BoundingBox boxB = env[ObjB].Item1;
+                double aX = boxA.Left + (boxA.Width / 2.0);
+                double bX = boxB.Left + (boxB.Width / 2.0);
+                return new BooleanIr(aX >= bX, ToggleVar);
+            } else {
+                throw new KeyNotFoundException("Unable to find keys in environment when applying a Left node");
+            }
+        }
+
+        public override ArithExpr? ToggleVarSum(Context ctx) {
+            if (ToggleVar != null) {
+                return (ArithExpr)ctx.MkITE(ToggleVar, ctx.MkInt(1), ctx.MkInt(0));
+            } else {
+                return null;
+            }
+        }
+
+        public override BoolExpr ToZ3(Context ctx, Form form) {
+            throw new NotImplementedException("Unable to convert partially compiled formula to z3 form. This formula contains a IOU expression. Try compiling to completely reify all IOU statements");
+        }
+
+        public override BooleanAst? Compile(Model z3Solution) {
+            if (ToggleVar == null || ToggleSolution(z3Solution)) {
+                return new Right(ObjA, ObjB);
+            } else {
+                return null;
+            }
+        }
+
+        public override List<Tuple<BoolExpr, uint>> CollectToggleVars(List<Tuple<BoolExpr, uint>> toggleVars) {
+            if (ToggleVar != null) {
+                toggleVars.Add(Tuple.Create<BoolExpr, uint>(ToggleVar, 1));
+            }
+            return toggleVars;
+        }
+    }
+
+    public class AboveIr : Ir
+    {
+        public readonly ObjectVariable ObjA;
+        public readonly ObjectVariable ObjB;
+
+        public AboveIr(ObjectVariable objA, ObjectVariable objB, BoolExpr toggleVar) : base(toggleVar) {
+            ObjA = objA;
+            ObjB = objB;
+        }
+
+        public override Ir Apply(ImmutableDictionary<ObjectVariable, Tuple<BoundingBox, ObjectLiteral>> env, IOExample example) {
+            if (env.ContainsKey(ObjA) && env.ContainsKey(ObjB)) {
+                BoundingBox boxA = env[ObjA].Item1;
+                BoundingBox boxB = env[ObjB].Item1;
+                double aY = boxA.Top + (boxA.Height / 2.0);
+                double bY = boxB.Top + (boxB.Height / 2.0);
+                return new BooleanIr(aY <= bY, ToggleVar);
+            } else {
+                throw new KeyNotFoundException("Unable to find keys in environment when applying a Left node");
+            }
+        }
+
+        public override ArithExpr? ToggleVarSum(Context ctx) {
+            if (ToggleVar != null) {
+                return (ArithExpr)ctx.MkITE(ToggleVar, ctx.MkInt(1), ctx.MkInt(0));
+            } else {
+                return null;
+            }
+        }
+
+        public override BoolExpr ToZ3(Context ctx, Form form) {
+            throw new NotImplementedException("Unable to convert partially compiled formula to z3 form. This formula contains a IOU expression. Try compiling to completely reify all IOU statements");
+        }
+
+        public override BooleanAst? Compile(Model z3Solution) {
+            if (ToggleVar == null || ToggleSolution(z3Solution)) {
+                return new Above(ObjA, ObjB);
+            } else {
+                return null;
+            }
+        }
+
+        public override List<Tuple<BoolExpr, uint>> CollectToggleVars(List<Tuple<BoolExpr, uint>> toggleVars) {
+            if (ToggleVar != null) {
+                toggleVars.Add(Tuple.Create<BoolExpr, uint>(ToggleVar, 1));
+            }
+            return toggleVars;
+        }
+    }
+
+    public class BelowIr : Ir
+    {
+        public readonly ObjectVariable ObjA;
+        public readonly ObjectVariable ObjB;
+
+        public BelowIr(ObjectVariable objA, ObjectVariable objB, BoolExpr toggleVar) : base(toggleVar) {
+            ObjA = objA;
+            ObjB = objB;
+        }
+
+        public override Ir Apply(ImmutableDictionary<ObjectVariable, Tuple<BoundingBox, ObjectLiteral>> env, IOExample example) {
+            if (env.ContainsKey(ObjA) && env.ContainsKey(ObjB)) {
+                BoundingBox boxA = env[ObjA].Item1;
+                BoundingBox boxB = env[ObjB].Item1;
+                double aY = boxA.Top + (boxA.Height / 2.0);
+                double bY = boxB.Top + (boxB.Height / 2.0);
+                return new BooleanIr(aY >= bY, ToggleVar);
+            } else {
+                throw new KeyNotFoundException("Unable to find keys in environment when applying a Left node");
+            }
+        }
+
+        public override ArithExpr? ToggleVarSum(Context ctx) {
+            if (ToggleVar != null) {
+                return (ArithExpr)ctx.MkITE(ToggleVar, ctx.MkInt(1), ctx.MkInt(0));
+            } else {
+                return null;
+            }
+        }
+
+        public override BoolExpr ToZ3(Context ctx, Form form) {
+            throw new NotImplementedException("Unable to convert partially compiled formula to z3 form. This formula contains a IOU expression. Try compiling to completely reify all IOU statements");
+        }
+
+        public override BooleanAst? Compile(Model z3Solution) {
+            if (ToggleVar == null || ToggleSolution(z3Solution)) {
+                return new Below(ObjA, ObjB);
+            } else {
+                return null;
+            }
+        }
+
+        public override List<Tuple<BoolExpr, uint>> CollectToggleVars(List<Tuple<BoolExpr, uint>> toggleVars) {
+            if (ToggleVar != null) {
+                toggleVars.Add(Tuple.Create<BoolExpr, uint>(ToggleVar, 1));
+            }
+            return toggleVars;
+        }
+    }
+
     public class ContainmentIr : Ir
     {
         public readonly ObjectVariable Container;

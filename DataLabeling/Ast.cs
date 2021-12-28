@@ -246,6 +246,66 @@ namespace DataLabeling
         }
     }
 
+    public class Left : BooleanAst
+    {
+        public ObjectAst ObjectA { get; private set; }
+        public ObjectAst ObjectB { get; private set; }
+
+        public Left(ObjectAst objectA, ObjectAst objectB) {
+            ObjectA = objectA;
+            ObjectB = objectB;
+        }
+
+        public override string ToString() {
+            return string.Format("Left({0}, {1})", ObjectA.ToString(), ObjectB.ToString());
+        }
+    }
+
+    public class Right : BooleanAst
+    {
+        public ObjectAst ObjectA { get; private set; }
+        public ObjectAst ObjectB { get; private set; }
+
+        public Right(ObjectAst objectA, ObjectAst objectB) {
+            ObjectA = objectA;
+            ObjectB = objectB;
+        }
+
+        public override string ToString() {
+            return string.Format("Right({0}, {1})", ObjectA.ToString(), ObjectB.ToString());
+        }
+    }
+
+    public class Above : BooleanAst
+    {
+        public ObjectAst ObjectA { get; private set; }
+        public ObjectAst ObjectB { get; private set; }
+
+        public Above(ObjectAst objectA, ObjectAst objectB) {
+            ObjectA = objectA;
+            ObjectB = objectB;
+        }
+
+        public override string ToString() {
+            return string.Format("Above({0}, {1})", ObjectA.ToString(), ObjectB.ToString());
+        }
+    }
+
+    public class Below : BooleanAst
+    {
+        public ObjectAst ObjectA { get; private set; }
+        public ObjectAst ObjectB { get; private set; }
+
+        public Below(ObjectAst objectA, ObjectAst objectB) {
+            ObjectA = objectA;
+            ObjectB = objectB;
+        }
+
+        public override string ToString() {
+            return string.Format("Below({0}, {1})", ObjectA.ToString(), ObjectB.ToString());
+        }
+    }
+
     public class IOU : BooleanAst
     {
         public ObjectAst ObjectA { get; private set; }
