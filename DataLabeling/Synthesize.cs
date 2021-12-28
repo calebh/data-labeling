@@ -51,8 +51,8 @@ namespace DataLabeling
                 List<List<MapApply>> synthesizedMaps = new List<List<MapApply>>();
 
                 foreach (ObjectLiteral preciseLabel in preciseLibrary) {
-                    List<int> numClausesPerQuantLevel = new List<int> { 5 };
-                    int quantifierNestedLevel = 0;
+                    List<int> numClausesPerQuantLevel = new List<int> { 5, 5, 5 };
+                    int quantifierNestedLevel = 2;
 
                     bool synthesisSucceeded = false;
                     bool incrementedQuantifierLevel = true;
@@ -80,6 +80,9 @@ namespace DataLabeling
                                     clauseDnf.Add(new MatchIr(levelVar, label, true, getFreshToggleVar()));
                                     clauseCnf.Add(new MatchIr(levelVar, label, true, getFreshToggleVar()));
                                 }
+
+                                clauseDnf.Add(new ColorComparisonIr(levelVar, getFreshRealVar(), getFreshRealVar(), getFreshRealVar(), getFreshToggleVar()));
+                                clauseCnf.Add(new ColorComparisonIr(levelVar, getFreshRealVar(), getFreshRealVar(), getFreshRealVar(), getFreshToggleVar()));
 
                                 for (int i = 0; i < accumLevels.Count; i++) {
                                     for (int j = i + 1; j < accumLevels.Count; j++) {
@@ -142,20 +145,14 @@ namespace DataLabeling
 
                         int smallestObjective = int.MaxValue;
 
-                        Tuple<List<BoolExpr>, List<BoolExpr>> toggleVarsDnf = dnf.CollectToggleVars();
-                        foreach (BoolExpr tv in toggleVarsDnf.Item1) {
-                            s_dnf.AssertSoft(ctx.MkNot(tv), 1, "tv");
-                        }
-                        foreach (BoolExpr tv in toggleVarsDnf.Item2) {
-                            s_dnf.AssertSoft(ctx.MkNot(tv), 2, "tv");
+                        List<Tuple<BoolExpr, uint>> toggleVarsDnf = dnf.CollectToggleVars();
+                        foreach (Tuple<BoolExpr, uint> tvWithWeight in toggleVarsDnf) {
+                            s_dnf.AssertSoft(ctx.MkNot(tvWithWeight.Item1), tvWithWeight.Item2, "tv");
                         }
 
-                        Tuple<List<BoolExpr>, List<BoolExpr>> toggleVarsCnf = cnf.CollectToggleVars();
-                        foreach (BoolExpr tv in toggleVarsCnf.Item1) {
-                            s_cnf.AssertSoft(ctx.MkNot(tv), 1, "tv");
-                        }
-                        foreach (BoolExpr tv in toggleVarsCnf.Item2) {
-                            s_cnf.AssertSoft(ctx.MkNot(tv), 2, "tv");
+                        List<Tuple<BoolExpr, uint>> toggleVarsCnf = cnf.CollectToggleVars();
+                        foreach (Tuple<BoolExpr, uint> tvWithWeight in toggleVarsCnf) {
+                            s_cnf.AssertSoft(ctx.MkNot(tvWithWeight.Item1), tvWithWeight.Item2, "tv");
                         }
 
                         List<MapApply> bestPrograms = new List<MapApply>();
@@ -163,7 +160,7 @@ namespace DataLabeling
                         Console.WriteLine("Synthesizing with " + numClauses + " at " + quantifierNestedLevel + " deep");
 
                         Action<Optimize, Ir, List<BoolExpr>> runZ3 = (Optimize s, Ir nf, List<BoolExpr> toggleVars) => {
-                            while (bestPrograms.Count < 10) {
+                            while (bestPrograms.Count < 1) {
                                 if (s.Check() == Status.SATISFIABLE) {
                                     Model m = s.Model;
                                     int objectiveValue = ((IntNum)m.Eval(nf.ToggleVarSum(ctx)).Simplify()).Int;
@@ -182,8 +179,8 @@ namespace DataLabeling
                             }
                         };
 
-                        runZ3(s_dnf, dnf, toggleVarsDnf.Item1.Concat(toggleVarsDnf.Item2).ToList());
-                        runZ3(s_cnf, cnf, toggleVarsCnf.Item1.Concat(toggleVarsCnf.Item2).ToList());
+                        runZ3(s_dnf, dnf, toggleVarsDnf.Select(t => t.Item1).ToList());
+                        runZ3(s_cnf, cnf, toggleVarsCnf.Select(t => t.Item1).ToList());
 
                         if (bestPrograms.Count > 0) {
                             synthesizedMaps.Add(bestPrograms);

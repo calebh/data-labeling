@@ -7,7 +7,7 @@ namespace DataLabeling
     public class Program
     {
         public static void Main(string[] args) {
-            string exampleFile = "images/all.json";
+            string exampleFile = "images/guitarist.json";
             List<IOExample> examples = Json.JsonMethods.Read(exampleFile);
             List<List<MapApply>> ast = Synthesize.DoSynthesis(examples);
 

@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "DataLabeling": {
+      "commandName": "Project",
+      "nativeDebugging": false
+    }
+  }
+}

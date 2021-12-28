@@ -4,6 +4,7 @@ import tkinter as tk
 import tkinter.simpledialog
 from PIL import Image, ImageTk, ImageDraw
 import json
+import os
 
 client = boto3.client('rekognition')
 
@@ -102,7 +103,7 @@ accumulated_info = []
 image_paths = sys.argv[1:-1]
 for img in image_paths:
     (width, height, box_info) = process_image(img)
-    data = {"Path": img, "Boxes": [], "Width": width, "Height": height}
+    data = {"Path": os.path.abspath(img), "Boxes": [], "Width": width, "Height": height}
     for (box, name, precise_label) in box_info:
         data["Boxes"].append({"Box": box.to_dict(), "Label": name, "PreciseLabel": precise_label})
     accumulated_info.append(data)

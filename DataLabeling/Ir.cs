@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Z3;
 using System.Collections.Immutable;
+using DataLabeling.Color;
 
 namespace DataLabeling
 {
@@ -30,13 +31,13 @@ namespace DataLabeling
             return z3Solution.Eval(ToggleVar).BoolValue == Z3_lbool.Z3_L_TRUE;
         }
 
-        public abstract Tuple<List<BoolExpr>, List<BoolExpr>> CollectToggleVars(Tuple<List<BoolExpr>, List<BoolExpr>> toggleVars);
+        public abstract List<Tuple<BoolExpr, uint>> CollectToggleVars(List<Tuple<BoolExpr, uint>> toggleVars);
 
         // CollectToggleVars returns a tuple of two lists. The first list is those toggle variables
         // which are positive (ie, a plain match). The secon list is toggle variables which are negative
         // (ie, destructive aka not matches)
-        public Tuple<List<BoolExpr>, List<BoolExpr>> CollectToggleVars() {
-            return CollectToggleVars(Tuple.Create(new List<BoolExpr>(), new List<BoolExpr>()));
+        public List<Tuple<BoolExpr, uint>> CollectToggleVars() {
+            return CollectToggleVars(new List<Tuple<BoolExpr, uint>>());
         }
     }
 
@@ -108,9 +109,9 @@ namespace DataLabeling
             }
         }
 
-        public override Tuple<List<BoolExpr>, List<BoolExpr>> CollectToggleVars(Tuple<List<BoolExpr>, List<BoolExpr>> toggleVars) {
+        public override List<Tuple<BoolExpr, uint>> CollectToggleVars(List<Tuple<BoolExpr, uint>> toggleVars) {
             if (ToggleVar != null) {
-                toggleVars.Item1.Add(ToggleVar);
+                toggleVars.Add(Tuple.Create<BoolExpr, uint>(ToggleVar, 1));
             }
             foreach (Ir ir in Inner) {
                 ir.CollectToggleVars(toggleVars);
@@ -187,9 +188,9 @@ namespace DataLabeling
             }
         }
 
-        public override Tuple<List<BoolExpr>, List<BoolExpr>> CollectToggleVars(Tuple<List<BoolExpr>, List<BoolExpr>> toggleVars) {
+        public override List<Tuple<BoolExpr, uint>> CollectToggleVars(List<Tuple<BoolExpr, uint>> toggleVars) {
             if (ToggleVar != null) {
-                toggleVars.Item1.Add(ToggleVar);
+                toggleVars.Add(Tuple.Create<BoolExpr, uint>(ToggleVar, 1));
             }
             foreach (Ir ir in Inner) {
                 ir.CollectToggleVars(toggleVars);
@@ -232,9 +233,9 @@ namespace DataLabeling
             }
         }
 
-        public override Tuple<List<BoolExpr>, List<BoolExpr>> CollectToggleVars(Tuple<List<BoolExpr>, List<BoolExpr>> toggleVars) {
+        public override List<Tuple<BoolExpr, uint>> CollectToggleVars(List<Tuple<BoolExpr, uint>> toggleVars) {
             if (ToggleVar != null) {
-                toggleVars.Item1.Add(ToggleVar);
+                toggleVars.Add(Tuple.Create<BoolExpr, uint>(ToggleVar, 1));
             }
             Inner.CollectToggleVars(toggleVars);
             return toggleVars;
@@ -275,9 +276,9 @@ namespace DataLabeling
             }
         }
 
-        public override Tuple<List<BoolExpr>, List<BoolExpr>> CollectToggleVars(Tuple<List<BoolExpr>, List<BoolExpr>> toggleVars) {
+        public override List<Tuple<BoolExpr, uint>> CollectToggleVars(List<Tuple<BoolExpr, uint>> toggleVars) {
             if (ToggleVar != null) {
-                toggleVars.Item1.Add(ToggleVar);
+                toggleVars.Add(Tuple.Create<BoolExpr, uint>(ToggleVar, 1));
             }
             Inner.CollectToggleVars(toggleVars);
             return toggleVars;
@@ -316,9 +317,9 @@ namespace DataLabeling
             throw new NotImplementedException("Cannot compile a boolean to an AST representation");
         }
 
-        public override Tuple<List<BoolExpr>, List<BoolExpr>> CollectToggleVars(Tuple<List<BoolExpr>, List<BoolExpr>> toggleVars) {
+        public override List<Tuple<BoolExpr, uint>> CollectToggleVars(List<Tuple<BoolExpr, uint>> toggleVars) {
             if (ToggleVar != null) {
-                toggleVars.Item1.Add(ToggleVar);
+                toggleVars.Add(Tuple.Create<BoolExpr, uint>(ToggleVar, 1));
             }
             return toggleVars;
         }
@@ -388,12 +389,12 @@ namespace DataLabeling
             }
         }
 
-        public override Tuple<List<BoolExpr>, List<BoolExpr>> CollectToggleVars(Tuple<List<BoolExpr>, List<BoolExpr>> toggleVars) {
+        public override List<Tuple<BoolExpr, uint>> CollectToggleVars(List<Tuple<BoolExpr, uint>> toggleVars) {
             if (ToggleVar != null) {
                 if (Negated) {
-                    toggleVars.Item2.Add(ToggleVar);
+                    toggleVars.Add(Tuple.Create<BoolExpr, uint>(ToggleVar, 2));
                 } else {
-                    toggleVars.Item1.Add(ToggleVar);
+                    toggleVars.Add(Tuple.Create<BoolExpr, uint>(ToggleVar, 1));
                 }
             }
             return toggleVars;
@@ -436,9 +437,9 @@ namespace DataLabeling
             throw new NotImplementedException("Cannot compile a boolean to an AST representation");
         }
 
-        public override Tuple<List<BoolExpr>, List<BoolExpr>> CollectToggleVars(Tuple<List<BoolExpr>, List<BoolExpr>> toggleVars) {
+        public override List<Tuple<BoolExpr, uint>> CollectToggleVars(List<Tuple<BoolExpr, uint>> toggleVars) {
             if (ToggleVar != null) {
-                toggleVars.Item1.Add(ToggleVar);
+                toggleVars.Add(Tuple.Create<BoolExpr, uint>(ToggleVar, 1));
             }
             return toggleVars;
         }
@@ -486,9 +487,9 @@ namespace DataLabeling
             }
         }
 
-        public override Tuple<List<BoolExpr>, List<BoolExpr>> CollectToggleVars(Tuple<List<BoolExpr>, List<BoolExpr>> toggleVars) {
+        public override List<Tuple<BoolExpr, uint>> CollectToggleVars(List<Tuple<BoolExpr, uint>> toggleVars) {
             if (ToggleVar != null) {
-                toggleVars.Item1.Add(ToggleVar);
+                toggleVars.Add(Tuple.Create<BoolExpr, uint>(ToggleVar, 1));
             }
             return toggleVars;
         }
@@ -536,11 +537,124 @@ namespace DataLabeling
             }
         }
 
-        public override Tuple<List<BoolExpr>, List<BoolExpr>> CollectToggleVars(Tuple<List<BoolExpr>, List<BoolExpr>> toggleVars) {
+        public override List<Tuple<BoolExpr, uint>> CollectToggleVars(List<Tuple<BoolExpr, uint>> toggleVars) {
             if (ToggleVar != null) {
-                toggleVars.Item1.Add(ToggleVar);
+                toggleVars.Add(Tuple.Create<BoolExpr, uint>(ToggleVar, 1));
             }
             return toggleVars;
         }
     }
+
+    public class ColorComparisonIrApplied : Ir
+    {
+        public readonly YUV CompareTo;
+        public readonly RealExpr Y;
+        public readonly RealExpr U;
+        public readonly RealExpr V;
+
+        public ColorComparisonIrApplied(YUV compareTo, RealExpr y, RealExpr u, RealExpr v, BoolExpr toggleVar) : base(toggleVar) {
+            CompareTo = compareTo;
+            Y = y;
+            U = u;
+            V = v;
+        }
+
+        public override Ir Apply(ImmutableDictionary<ObjectVariable, Tuple<BoundingBox, ObjectLiteral>> env, IOExample example) {
+            return this;
+        }
+
+        public override List<Tuple<BoolExpr, uint>> CollectToggleVars(List<Tuple<BoolExpr, uint>> toggleVars) {
+            if (ToggleVar != null) {
+                toggleVars.Add(Tuple.Create<BoolExpr, uint>(ToggleVar, 3));
+            }
+            return toggleVars;
+        }
+
+        public override BooleanAst? Compile(Model z3Solution) {
+            throw new NotImplementedException("Cannot compile a ColorComparison to an AST representation");
+        }
+
+        public override ArithExpr? ToggleVarSum(Context ctx) {
+            if (ToggleVar != null) {
+                return (ArithExpr)ctx.MkITE(ToggleVar, ctx.MkInt(3), ctx.MkInt(0));
+            } else {
+                return null;
+            }
+        }
+
+        public override BoolExpr ToZ3(Context ctx, Form form) {
+            var yCalc = CompareTo.Y - Y;
+            var uCalc = CompareTo.U - U;
+            var vCalc = CompareTo.V - V;
+            double threshold = 0.05;
+            BoolExpr passed = ctx.MkAnd(
+                -threshold <= yCalc, yCalc <= threshold,
+                -threshold <= uCalc, uCalc <= threshold,
+                -threshold <= vCalc, vCalc <= threshold);
+
+            if (form == Form.DNF) {
+                return ctx.MkImplies(ToggleVar, passed);
+            } else if (form == Form.CNF) {
+                return ctx.MkAnd(ToggleVar, passed);
+            }
+
+            throw new NotImplementedException();
+        }
+    }
+
+    public class ColorComparisonIr : Ir
+    {
+        public readonly ObjectVariable Obj;
+        public RealExpr Y;
+        public RealExpr U;
+        public RealExpr V;
+
+        public ColorComparisonIr(ObjectVariable obj, RealExpr y, RealExpr u, RealExpr v, BoolExpr toggleVar) : base(toggleVar) {
+            Obj = obj;
+            Y = y;
+            U = u;
+            V = v;
+        }
+
+        public override Ir Apply(ImmutableDictionary<ObjectVariable, Tuple<BoundingBox, ObjectLiteral>> env, IOExample example) {
+            if (env.ContainsKey(Obj)) {
+                BoundingBox box = env[Obj].Item1;
+                YUV boxColor = example.Resource.AverageColor(box);
+                return new ColorComparisonIrApplied(boxColor, Y, U, V, ToggleVar);
+            } else {
+                throw new KeyNotFoundException("Unable to find keys in environment when applying a color comparison node");
+            }
+        }
+
+        public override List<Tuple<BoolExpr, uint>> CollectToggleVars(List<Tuple<BoolExpr, uint>> toggleVars) {
+            if (ToggleVar != null) {
+                toggleVars.Add(Tuple.Create<BoolExpr, uint>(ToggleVar, 3));
+            }
+            return toggleVars;
+        }
+
+        public override BooleanAst? Compile(Model z3Solution) {
+            if (ToggleVar == null || ToggleSolution(z3Solution)) {
+                double solvedY = ((RatNum)z3Solution.Eval(Y)).Double;
+                double solvedU = ((RatNum)z3Solution.Eval(U)).Double;
+                double solvedV = ((RatNum)z3Solution.Eval(V)).Double;
+                return new ColorComparison(Obj, new YUV(solvedY, solvedU, solvedV));
+            } else {
+                return null;
+            }
+        }
+
+        public override ArithExpr? ToggleVarSum(Context ctx) {
+            if (ToggleVar != null) {
+                return (ArithExpr)ctx.MkITE(ToggleVar, ctx.MkInt(3), ctx.MkInt(0));
+            } else {
+                return null;
+            }
+        }
+
+        public override BoolExpr ToZ3(Context ctx, Form form) {
+            throw new NotImplementedException("Unable to convert partially compiled formula to z3 form. This formula contains a color comparison expression. Try compiling to completely reify all color comparison statements");
+        }
+    }
 }
+ 

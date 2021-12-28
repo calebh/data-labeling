@@ -1,4 +1,5 @@
-﻿using System;
+﻿using DataLabeling.Color;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -276,6 +277,21 @@ namespace DataLabeling
 
         public override string ToString() {
             return string.Format("Containment({0}, {1}) >= {2}", Container.ToString(), Contained.ToString(), Threshold);
+        }
+    }
+
+    public class ColorComparison : BooleanAst
+    {
+        public readonly ObjectAst Obj;
+        public readonly YUV Color;
+
+        public ColorComparison(ObjectAst obj, YUV color) {
+            Obj = obj;
+            Color = color;
+        }
+
+        public override string ToString() {
+            return string.Format("ColorContainment({0}, ({1}, {2}, {3}))", Obj.ToString(), Color.Y, Color.U, Color.V);
         }
     }
 }
