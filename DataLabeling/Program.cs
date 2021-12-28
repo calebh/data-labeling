@@ -7,7 +7,7 @@ namespace DataLabeling
     public class Program
     {
         public static void Main(string[] args) {
-            string exampleFile = "images/bicyclist.json";
+            string exampleFile = "images/lifeguard.json";
             List<IOExample> examples = Json.JsonMethods.Read(exampleFile);
 
             Console.WriteLine("Is color important in these images? (y/n)");

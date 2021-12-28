@@ -351,7 +351,8 @@ namespace DataLabeling
         }
 
         public override string ToString() {
-            return string.Format("ColorContainment({0}, ({1}, {2}, {3}))", Obj.ToString(), Color.Y, Color.U, Color.V);
+            RGB rgbColor = new RGB(Color);
+            return string.Format("ColorContainment({0}, ({1}, {2}, {3}))", Obj.ToString(), (int) (rgbColor.R * 255.0), (int) (rgbColor.G * 255.0), (int) (rgbColor.B * 255.0));
         }
     }
 }
