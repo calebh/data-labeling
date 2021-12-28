@@ -30,7 +30,7 @@ namespace DataLabeling
             return result.ToList();
         }
 
-        public static List<List<MapApply>> DoSynthesis(List<IOExample> examples) {
+        public static List<List<MapApply>> DoSynthesis(List<IOExample> examples, bool enableColorSynthesis) {
             using (Context ctx = new Context(new Dictionary<string, string>() { { "model", "true" } })) {
                 int varIndex = 0;
                 Func<BoolExpr> getFreshToggleVar = () => {
@@ -52,7 +52,7 @@ namespace DataLabeling
 
                 foreach (ObjectLiteral preciseLabel in preciseLibrary) {
                     List<int> numClausesPerQuantLevel = new List<int> { 5, 5, 5 };
-                    int quantifierNestedLevel = 2;
+                    int quantifierNestedLevel = 1;
 
                     bool synthesisSucceeded = false;
                     bool incrementedQuantifierLevel = true;
@@ -81,8 +81,10 @@ namespace DataLabeling
                                     clauseCnf.Add(new MatchIr(levelVar, label, true, getFreshToggleVar()));
                                 }
 
-                                clauseDnf.Add(new ColorComparisonIr(levelVar, getFreshRealVar(), getFreshRealVar(), getFreshRealVar(), getFreshToggleVar()));
-                                clauseCnf.Add(new ColorComparisonIr(levelVar, getFreshRealVar(), getFreshRealVar(), getFreshRealVar(), getFreshToggleVar()));
+                                if (enableColorSynthesis) {
+                                    clauseDnf.Add(new ColorComparisonIr(levelVar, getFreshRealVar(), getFreshRealVar(), getFreshRealVar(), getFreshToggleVar()));
+                                    clauseCnf.Add(new ColorComparisonIr(levelVar, getFreshRealVar(), getFreshRealVar(), getFreshRealVar(), getFreshToggleVar()));
+                                }
 
                                 for (int i = 0; i < accumLevels.Count; i++) {
                                     for (int j = i + 1; j < accumLevels.Count; j++) {
