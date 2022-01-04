@@ -21,7 +21,7 @@ namespace DataLabeling
 
         public abstract Ir Apply(ImmutableDictionary<ObjectVariable, Tuple<BoundingBox, ObjectLiteral>> env, IOExample example);
 
-        public abstract BoolExpr ToZ3(Context ctx, Form form);
+        public abstract BoolExpr ToZ3(Optimize optimize, Context ctx, Form form);
 
         public abstract ArithExpr? ToggleVarSum(Context ctx);
 
@@ -74,22 +74,22 @@ namespace DataLabeling
             }
         }
 
-        public override BoolExpr ToZ3(Context ctx, Form form) {
+        public override BoolExpr ToZ3(Optimize optimize, Context ctx, Form form) {
             if (form == Form.DNF) {
                 if (ToggleVar == null) {
                     // This Or clause is in the outermost form, so we should ignore any toggle variable behaviour
-                    return ctx.MkOr(Inner.Select(x => x.ToZ3(ctx, form)).ToArray());
+                    return ctx.MkOr(Inner.Select(x => x.ToZ3(optimize, ctx, form)).ToArray());
                 } else {
                     // This Or clause is embedded within an And clause as part of an "Any"
-                    return ctx.MkImplies(ToggleVar, ctx.MkOr(Inner.Select(x => x.ToZ3(ctx, form)).ToArray()));
+                    return ctx.MkImplies(ToggleVar, ctx.MkOr(Inner.Select(x => x.ToZ3(optimize, ctx, form)).ToArray()));
                 }
             } else if (form == Form.CNF) {
                 if (ToggleVar == null) {
                     // This Or clause is embedded within an and clause, so we should compute an equivalent toggle variable
-                    return ctx.MkOr(ctx.MkNot(ctx.MkOr(Inner.Select(x => x.ToggleVar).ToArray())), ctx.MkOr(Inner.Select(x => x.ToZ3(ctx, form)).ToArray()));
+                    return ctx.MkOr(ctx.MkNot(ctx.MkOr(Inner.Select(x => x.ToggleVar).ToArray())), ctx.MkOr(Inner.Select(x => x.ToZ3(optimize, ctx, form)).ToArray()));
                 } else {
                     // This Or clause is embedded within an Or clause as part of an "Any"
-                    return ctx.MkAnd(ToggleVar, ctx.MkOr(Inner.Select(x => x.ToZ3(ctx, form)).ToArray()));
+                    return ctx.MkAnd(ToggleVar, ctx.MkOr(Inner.Select(x => x.ToZ3(optimize, ctx, form)).ToArray()));
                 }
             }
 
@@ -153,22 +153,22 @@ namespace DataLabeling
             }
         }
 
-        public override BoolExpr ToZ3(Context ctx, Form form) {
+        public override BoolExpr ToZ3(Optimize optimize, Context ctx, Form form) {
             if (form == Form.DNF) {
                 if (ToggleVar == null) {
                     // This And clause is embedded within an Or clause, so we should compute the equivalent toggle variable
-                    return ctx.MkAnd(ctx.MkOr(Inner.Select(x => x.ToggleVar).ToArray()), ctx.MkAnd(Inner.Select(x => x.ToZ3(ctx, form)).ToArray()));
+                    return ctx.MkAnd(ctx.MkOr(Inner.Select(x => x.ToggleVar).ToArray()), ctx.MkAnd(Inner.Select(x => x.ToZ3(optimize, ctx, form)).ToArray()));
                 } else {
                     // This And clause is embedded within an And clause as part of an "All"
-                    return ctx.MkImplies(ToggleVar, ctx.MkAnd(Inner.Select(x => x.ToZ3(ctx, form)).ToArray()));
+                    return ctx.MkImplies(ToggleVar, ctx.MkAnd(Inner.Select(x => x.ToZ3(optimize, ctx, form)).ToArray()));
                 }
             } else if (form == Form.CNF) {
                 if (ToggleVar == null) {
                     // This And clause in the outermost form, and we should ignore any toggles
-                    return ctx.MkAnd(Inner.Select(x => x.ToZ3(ctx, form)).ToArray());
+                    return ctx.MkAnd(Inner.Select(x => x.ToZ3(optimize, ctx, form)).ToArray());
                 } else {
                     // This And clause is embedded within an Or clause as part of an "All"
-                    return ctx.MkAnd(ToggleVar, ctx.MkAnd(Inner.Select(x => x.ToZ3(ctx, form)).ToArray()));
+                    return ctx.MkAnd(ToggleVar, ctx.MkAnd(Inner.Select(x => x.ToZ3(optimize, ctx, form)).ToArray()));
                 }
             }
 
@@ -221,7 +221,7 @@ namespace DataLabeling
             }
         }
 
-        public override BoolExpr ToZ3(Context ctx, Form form) {
+        public override BoolExpr ToZ3(Optimize optimize, Context ctx, Form form) {
             throw new NotImplementedException("Unable to convert partially compiled formula to z3 form. This formula contains an any expression. Try compiling to completely reify all any statements");
         }
 
@@ -264,7 +264,7 @@ namespace DataLabeling
             }
         }
 
-        public override BoolExpr ToZ3(Context ctx, Form form) {
+        public override BoolExpr ToZ3(Optimize optimize, Context ctx, Form form) {
             throw new NotImplementedException("Unable to convert partially compiled formula to z3 form. This formula contains an all expression. Try compiling to completely reify all all statements");
         }
 
@@ -305,7 +305,7 @@ namespace DataLabeling
             }
         }
 
-        public override BoolExpr ToZ3(Context ctx, Form form) {
+        public override BoolExpr ToZ3(Optimize optimize, Context ctx, Form form) {
             if (form == Form.DNF) {;
                 return ctx.MkImplies(ToggleVar, ctx.MkBool(Value));
             } else {
@@ -372,7 +372,7 @@ namespace DataLabeling
             }
         }
 
-        public override BoolExpr ToZ3(Context ctx, Form form) {
+        public override BoolExpr ToZ3(Optimize optimize, Context ctx, Form form) {
             throw new NotImplementedException("Unable to convert partially compiled formula to z3 form. This formula contains a match expression. Try compiling to completely reify all match statements");
         }
 
@@ -423,7 +423,7 @@ namespace DataLabeling
             }
         }
 
-        public override BoolExpr ToZ3(Context ctx, Form form) {
+        public override BoolExpr ToZ3(Optimize optimize, Context ctx, Form form) {
             if (form == Form.DNF) {
                 return ctx.MkImplies(ToggleVar, ctx.MkReal(Val.ToString()) >= ComparisonVar);
             } else if (form == Form.CNF) {
@@ -475,7 +475,7 @@ namespace DataLabeling
             }
         }
 
-        public override BoolExpr ToZ3(Context ctx, Form form) {
+        public override BoolExpr ToZ3(Optimize optimize, Context ctx, Form form) {
             throw new NotImplementedException("Unable to convert partially compiled formula to z3 form. This formula contains a IOU expression. Try compiling to completely reify all IOU statements");
         }
 
@@ -525,7 +525,7 @@ namespace DataLabeling
             }
         }
 
-        public override BoolExpr ToZ3(Context ctx, Form form) {
+        public override BoolExpr ToZ3(Optimize optimize, Context ctx, Form form) {
             throw new NotImplementedException("Unable to convert partially compiled formula to z3 form. This formula contains a IOU expression. Try compiling to completely reify all IOU statements");
         }
 
@@ -575,7 +575,7 @@ namespace DataLabeling
             }
         }
 
-        public override BoolExpr ToZ3(Context ctx, Form form) {
+        public override BoolExpr ToZ3(Optimize optimize, Context ctx, Form form) {
             throw new NotImplementedException("Unable to convert partially compiled formula to z3 form. This formula contains a IOU expression. Try compiling to completely reify all IOU statements");
         }
 
@@ -625,7 +625,7 @@ namespace DataLabeling
             }
         }
 
-        public override BoolExpr ToZ3(Context ctx, Form form) {
+        public override BoolExpr ToZ3(Optimize optimize, Context ctx, Form form) {
             throw new NotImplementedException("Unable to convert partially compiled formula to z3 form. This formula contains a IOU expression. Try compiling to completely reify all IOU statements");
         }
 
@@ -675,7 +675,7 @@ namespace DataLabeling
             }
         }
 
-        public override BoolExpr ToZ3(Context ctx, Form form) {
+        public override BoolExpr ToZ3(Optimize optimize, Context ctx, Form form) {
             throw new NotImplementedException("Unable to convert partially compiled formula to z3 form. This formula contains a IOU expression. Try compiling to completely reify all IOU statements");
         }
 
@@ -725,7 +725,7 @@ namespace DataLabeling
             }
         }
 
-        public override BoolExpr ToZ3(Context ctx, Form form) {
+        public override BoolExpr ToZ3(Optimize optimize, Context ctx, Form form) {
             throw new NotImplementedException("Unable to convert partially compiled formula to z3 form. This formula contains a IOU expression. Try compiling to completely reify all IOU statements");
         }
 
@@ -784,7 +784,7 @@ namespace DataLabeling
             }
         }
 
-        public override BoolExpr ToZ3(Context ctx, Form form) {
+        public override BoolExpr ToZ3(Optimize optimize, Context ctx, Form form) {
             var yCalc = CompareTo.Y - Y;
             var uCalc = CompareTo.U - U;
             var vCalc = CompareTo.V - V;
@@ -792,6 +792,14 @@ namespace DataLabeling
                 -Threshold <= yCalc, yCalc <= Threshold,
                 -Threshold <= uCalc, uCalc <= Threshold,
                 -Threshold <= vCalc, vCalc <= Threshold);
+
+            optimize.Add(0 <= Y);
+            optimize.Add(Y <= 1);
+            optimize.Add(-0.5 <= U);
+            optimize.Add(U <= 0.5);
+            optimize.Add(-0.5 <= V);
+            optimize.Add(V <= 0.5);
+            optimize.Add(Threshold >= 0.1);
 
             if (form == Form.DNF) {
                 return ctx.MkImplies(ToggleVar, passed);
@@ -856,7 +864,7 @@ namespace DataLabeling
             }
         }
 
-        public override BoolExpr ToZ3(Context ctx, Form form) {
+        public override BoolExpr ToZ3(Optimize optimize, Context ctx, Form form) {
             throw new NotImplementedException("Unable to convert partially compiled formula to z3 form. This formula contains a color comparison expression. Try compiling to completely reify all color comparison statements");
         }
     }

@@ -143,9 +143,9 @@ namespace DataLabeling
                             foreach (BoundingBox box in example.GetBoxes()) {
                                 var initEnv = ImmutableDictionary<ObjectVariable, Tuple<BoundingBox, ObjectLiteral>>.Empty.Add(outermostVariable, Tuple.Create(box, example.GetBase(box)));
                                 var compiled_dnf_0 = dnf.Apply(initEnv, example);
-                                var compiled_dnf = compiled_dnf_0.ToZ3(ctx, Form.DNF);
+                                var compiled_dnf = compiled_dnf_0.ToZ3(s_dnf, ctx, Form.DNF);
                                 var compiled_cnf_0 = cnf.Apply(initEnv, example);
-                                var compiled_cnf = compiled_cnf_0.ToZ3(ctx, Form.CNF);
+                                var compiled_cnf = compiled_cnf_0.ToZ3(s_cnf, ctx, Form.CNF);
                                 bool actionApplied = example.GetPrecise(box).Contains(preciseLabel);
                                 BoolExpr actionAppliedZ3 = ctx.MkBool(actionApplied);
                                 s_dnf.Add(ctx.MkIff(compiled_dnf, actionAppliedZ3));
