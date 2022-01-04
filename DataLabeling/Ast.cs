@@ -344,15 +344,17 @@ namespace DataLabeling
     {
         public readonly ObjectAst Obj;
         public readonly YUV Color;
+        public readonly double Threshold;
 
-        public ColorComparison(ObjectAst obj, YUV color) {
+        public ColorComparison(ObjectAst obj, YUV color, double threshold) {
             Obj = obj;
             Color = color;
+            Threshold = threshold;
         }
 
         public override string ToString() {
             RGB rgbColor = new RGB(Color);
-            return string.Format("ColorContainment({0}, ({1}, {2}, {3}))", Obj.ToString(), (int) (rgbColor.R * 255.0), (int) (rgbColor.G * 255.0), (int) (rgbColor.B * 255.0));
+            return string.Format("ColorContainment({0}, ({1}, {2}, {3}), {4})", Obj.ToString(), (int) (rgbColor.R * 255.0), (int) (rgbColor.G * 255.0), (int) (rgbColor.B * 255.0), Threshold);
         }
     }
 }

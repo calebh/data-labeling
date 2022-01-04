@@ -751,12 +751,14 @@ namespace DataLabeling
         public readonly RealExpr Y;
         public readonly RealExpr U;
         public readonly RealExpr V;
+        public readonly RealExpr Threshold;
 
-        public ColorComparisonIrApplied(YUV compareTo, RealExpr y, RealExpr u, RealExpr v, BoolExpr toggleVar) : base(toggleVar) {
+        public ColorComparisonIrApplied(YUV compareTo, RealExpr y, RealExpr u, RealExpr v, RealExpr threshold, BoolExpr toggleVar) : base(toggleVar) {
             CompareTo = compareTo;
             Y = y;
             U = u;
             V = v;
+            Threshold = threshold;
         }
 
         public override Ir Apply(ImmutableDictionary<ObjectVariable, Tuple<BoundingBox, ObjectLiteral>> env, IOExample example) {
@@ -786,11 +788,10 @@ namespace DataLabeling
             var yCalc = CompareTo.Y - Y;
             var uCalc = CompareTo.U - U;
             var vCalc = CompareTo.V - V;
-            double threshold = 0.05;
             BoolExpr passed = ctx.MkAnd(
-                -threshold <= yCalc, yCalc <= threshold,
-                -threshold <= uCalc, uCalc <= threshold,
-                -threshold <= vCalc, vCalc <= threshold);
+                -Threshold <= yCalc, yCalc <= Threshold,
+                -Threshold <= uCalc, uCalc <= Threshold,
+                -Threshold <= vCalc, vCalc <= Threshold);
 
             if (form == Form.DNF) {
                 return ctx.MkImplies(ToggleVar, passed);
@@ -808,19 +809,21 @@ namespace DataLabeling
         public RealExpr Y;
         public RealExpr U;
         public RealExpr V;
+        public RealExpr Threshold;
 
-        public ColorComparisonIr(ObjectVariable obj, RealExpr y, RealExpr u, RealExpr v, BoolExpr toggleVar) : base(toggleVar) {
+        public ColorComparisonIr(ObjectVariable obj, RealExpr y, RealExpr u, RealExpr v, RealExpr threshold, BoolExpr toggleVar) : base(toggleVar) {
             Obj = obj;
             Y = y;
             U = u;
             V = v;
+            Threshold = threshold;
         }
 
         public override Ir Apply(ImmutableDictionary<ObjectVariable, Tuple<BoundingBox, ObjectLiteral>> env, IOExample example) {
             if (env.ContainsKey(Obj)) {
                 BoundingBox box = env[Obj].Item1;
                 YUV boxColor = example.Resource.AverageColor(box);
-                return new ColorComparisonIrApplied(boxColor, Y, U, V, ToggleVar);
+                return new ColorComparisonIrApplied(boxColor, Y, U, V, Threshold, ToggleVar);
             } else {
                 throw new KeyNotFoundException("Unable to find keys in environment when applying a color comparison node");
             }
@@ -838,7 +841,8 @@ namespace DataLabeling
                 double solvedY = ((RatNum)z3Solution.Eval(Y)).Double;
                 double solvedU = ((RatNum)z3Solution.Eval(U)).Double;
                 double solvedV = ((RatNum)z3Solution.Eval(V)).Double;
-                return new ColorComparison(Obj, new YUV(solvedY, solvedU, solvedV));
+                double solvedThreshold = ((RatNum)z3Solution.Eval(Threshold)).Double;
+                return new ColorComparison(Obj, new YUV(solvedY, solvedU, solvedV), solvedThreshold);
             } else {
                 return null;
             }

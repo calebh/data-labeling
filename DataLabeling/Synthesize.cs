@@ -82,8 +82,8 @@ namespace DataLabeling
                                 }
 
                                 if (enableColorSynthesis) {
-                                    clauseDnf.Add(new ColorComparisonIr(levelVar, getFreshRealVar(), getFreshRealVar(), getFreshRealVar(), getFreshToggleVar()));
-                                    clauseCnf.Add(new ColorComparisonIr(levelVar, getFreshRealVar(), getFreshRealVar(), getFreshRealVar(), getFreshToggleVar()));
+                                    clauseDnf.Add(new ColorComparisonIr(levelVar, getFreshRealVar(), getFreshRealVar(), getFreshRealVar(), getFreshRealVar(), getFreshToggleVar()));
+                                    clauseCnf.Add(new ColorComparisonIr(levelVar, getFreshRealVar(), getFreshRealVar(), getFreshRealVar(), getFreshRealVar(), getFreshToggleVar()));
                                 }
 
                                 for (int i = 0; i < accumLevels.Count; i++) {
