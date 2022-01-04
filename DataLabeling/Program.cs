@@ -14,7 +14,11 @@ namespace DataLabeling
             string isColorImportantAnswer = Console.ReadLine();
             bool enableColorSynthesis = isColorImportantAnswer == "y" || isColorImportantAnswer == "yes";
 
-            List<List<MapApply>> ast = Synthesize.DoSynthesis(examples, enableColorSynthesis);
+            Console.WriteLine("Is the relative placement of objects important in these images? (y/n)");
+            string isPlacementImportantAnswer = Console.ReadLine();
+            bool enablePlacementSynthesis = isPlacementImportantAnswer == "y" || isPlacementImportantAnswer == "yes";
+
+            List<List<MapApply>> ast = Synthesize.DoSynthesis(examples, enableColorSynthesis, enablePlacementSynthesis);
 
             foreach (List<MapApply> mapApplyEquivalenceClass in ast) {
                 Console.WriteLine("Equivalence class for " + mapApplyEquivalenceClass[0].Action.LabelName);

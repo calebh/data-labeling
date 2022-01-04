@@ -331,10 +331,23 @@ namespace DataLabeling
         public readonly ObjectAst ObjB;
         public readonly bool Negated;
 
+        private readonly bool IsVariableMatch;
+
+        // Cost when one of the ObjA or ObjB is an object literal
+        public const int LITERAL_COST = 1;
+        // Cost when one of the ObjA or ObjB is an object literal, and the match expression is overall negated
+        public const int NEGATED_LITERAL_COST = 2;
+        // Cost when both of the ObjA and ObjB are object variables
+        public const int VARIABLE_COST = 2;
+        // Cost when both of the ObjA and ObjB are object variables, and the match expression is overall negated
+        public const int NEGATED_VARIABLE_COST = 3;
+
         public MatchIr(ObjectAst objA, ObjectAst objB, bool negated, BoolExpr toggleVar) : base(toggleVar) {
             ObjA = objA;
             ObjB = objB;
             Negated = negated;
+
+            IsVariableMatch = ObjA is ObjectVariable && ObjB is ObjectVariable;
         }
 
         public override Ir Apply(ImmutableDictionary<ObjectVariable, Tuple<BoundingBox, ObjectLiteral>> env, IOExample example) {
@@ -363,9 +376,17 @@ namespace DataLabeling
         public override ArithExpr? ToggleVarSum(Context ctx) {
             if (ToggleVar != null) {
                 if (Negated) {
-                    return (ArithExpr)ctx.MkITE(ToggleVar, ctx.MkInt(2), ctx.MkInt(0));
+                    if (IsVariableMatch) {
+                        return (ArithExpr)ctx.MkITE(ToggleVar, ctx.MkInt(NEGATED_VARIABLE_COST), ctx.MkInt(0));
+                    } else {
+                        return (ArithExpr)ctx.MkITE(ToggleVar, ctx.MkInt(NEGATED_LITERAL_COST), ctx.MkInt(0));
+                    }
                 } else {
-                    return (ArithExpr)ctx.MkITE(ToggleVar, ctx.MkInt(1), ctx.MkInt(0));
+                    if (IsVariableMatch) {
+                        return (ArithExpr)ctx.MkITE(ToggleVar, ctx.MkInt(VARIABLE_COST), ctx.MkInt(0));
+                    } else {
+                        return (ArithExpr)ctx.MkITE(ToggleVar, ctx.MkInt(LITERAL_COST), ctx.MkInt(0));
+                    }
                 }
             } else {
                 return null;
@@ -392,9 +413,17 @@ namespace DataLabeling
         public override List<Tuple<BoolExpr, uint>> CollectToggleVars(List<Tuple<BoolExpr, uint>> toggleVars) {
             if (ToggleVar != null) {
                 if (Negated) {
-                    toggleVars.Add(Tuple.Create<BoolExpr, uint>(ToggleVar, 2));
+                    if (IsVariableMatch) {
+                        toggleVars.Add(Tuple.Create<BoolExpr, uint>(ToggleVar, NEGATED_VARIABLE_COST));
+                    } else {
+                        toggleVars.Add(Tuple.Create<BoolExpr, uint>(ToggleVar, NEGATED_LITERAL_COST));
+                    }
                 } else {
-                    toggleVars.Add(Tuple.Create<BoolExpr, uint>(ToggleVar, 1));
+                    if (IsVariableMatch) {
+                        toggleVars.Add(Tuple.Create<BoolExpr, uint>(ToggleVar, VARIABLE_COST));
+                    } else {
+                        toggleVars.Add(Tuple.Create<BoolExpr, uint>(ToggleVar, LITERAL_COST));
+                    }
                 }
             }
             return toggleVars;
@@ -819,6 +848,8 @@ namespace DataLabeling
         public RealExpr V;
         public RealExpr Threshold;
 
+        public const int ColorCost = 4;
+
         public ColorComparisonIr(ObjectVariable obj, RealExpr y, RealExpr u, RealExpr v, RealExpr threshold, BoolExpr toggleVar) : base(toggleVar) {
             Obj = obj;
             Y = y;
@@ -839,7 +870,7 @@ namespace DataLabeling
 
         public override List<Tuple<BoolExpr, uint>> CollectToggleVars(List<Tuple<BoolExpr, uint>> toggleVars) {
             if (ToggleVar != null) {
-                toggleVars.Add(Tuple.Create<BoolExpr, uint>(ToggleVar, 3));
+                toggleVars.Add(Tuple.Create<BoolExpr, uint>(ToggleVar, ColorCost));
             }
             return toggleVars;
         }
@@ -858,7 +889,7 @@ namespace DataLabeling
 
         public override ArithExpr? ToggleVarSum(Context ctx) {
             if (ToggleVar != null) {
-                return (ArithExpr)ctx.MkITE(ToggleVar, ctx.MkInt(3), ctx.MkInt(0));
+                return (ArithExpr)ctx.MkITE(ToggleVar, ctx.MkInt(ColorCost), ctx.MkInt(0));
             } else {
                 return null;
             }

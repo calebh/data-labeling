@@ -30,7 +30,7 @@ namespace DataLabeling
             return result.ToList();
         }
 
-        public static List<List<MapApply>> DoSynthesis(List<IOExample> examples, bool enableColorSynthesis) {
+        public static List<List<MapApply>> DoSynthesis(List<IOExample> examples, bool enableColorSynthesis, bool enablePlacementSynthesis) {
             using (Context ctx = new Context(new Dictionary<string, string>() { { "model", "true" } })) {
                 int varIndex = 0;
                 Func<BoolExpr> getFreshToggleVar = () => {
@@ -98,14 +98,16 @@ namespace DataLabeling
                                         clauseCnf.Add(new ContainmentIr(accumLevels[i], accumLevels[j], getFreshRealVar(), getFreshToggleVar()));
                                         clauseDnf.Add(new ContainmentIr(accumLevels[j], accumLevels[i], getFreshRealVar(), getFreshToggleVar()));
                                         clauseCnf.Add(new ContainmentIr(accumLevels[j], accumLevels[i], getFreshRealVar(), getFreshToggleVar()));
-                                        clauseDnf.Add(new LeftIr(accumLevels[i], accumLevels[j], getFreshToggleVar()));
-                                        clauseCnf.Add(new LeftIr(accumLevels[i], accumLevels[j], getFreshToggleVar()));
-                                        clauseDnf.Add(new RightIr(accumLevels[i], accumLevels[j], getFreshToggleVar()));
-                                        clauseCnf.Add(new RightIr(accumLevels[i], accumLevels[j], getFreshToggleVar()));
-                                        clauseDnf.Add(new BelowIr(accumLevels[i], accumLevels[j], getFreshToggleVar()));
-                                        clauseCnf.Add(new BelowIr(accumLevels[i], accumLevels[j], getFreshToggleVar()));
-                                        clauseDnf.Add(new AboveIr(accumLevels[i], accumLevels[j], getFreshToggleVar()));
-                                        clauseCnf.Add(new AboveIr(accumLevels[i], accumLevels[j], getFreshToggleVar()));
+                                        if (enablePlacementSynthesis) {
+                                            clauseDnf.Add(new LeftIr(accumLevels[i], accumLevels[j], getFreshToggleVar()));
+                                            clauseCnf.Add(new LeftIr(accumLevels[i], accumLevels[j], getFreshToggleVar()));
+                                            clauseDnf.Add(new RightIr(accumLevels[i], accumLevels[j], getFreshToggleVar()));
+                                            clauseCnf.Add(new RightIr(accumLevels[i], accumLevels[j], getFreshToggleVar()));
+                                            clauseDnf.Add(new BelowIr(accumLevels[i], accumLevels[j], getFreshToggleVar()));
+                                            clauseCnf.Add(new BelowIr(accumLevels[i], accumLevels[j], getFreshToggleVar()));
+                                            clauseDnf.Add(new AboveIr(accumLevels[i], accumLevels[j], getFreshToggleVar()));
+                                            clauseCnf.Add(new AboveIr(accumLevels[i], accumLevels[j], getFreshToggleVar()));
+                                        }
                                     }
                                 }
 
