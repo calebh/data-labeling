@@ -75,10 +75,10 @@ namespace DataLabeling
                                 List<Ir> clauseCnf = new List<Ir>();
 
                                 foreach (ObjectLiteral label in baseLibrary) {
-                                    clauseDnf.Add(new MatchIr(levelVar, label, false, getFreshToggleVar()));
-                                    clauseCnf.Add(new MatchIr(levelVar, label, false, getFreshToggleVar()));
-                                    clauseDnf.Add(new MatchIr(levelVar, label, true, getFreshToggleVar()));
-                                    clauseCnf.Add(new MatchIr(levelVar, label, true, getFreshToggleVar()));
+                                    clauseDnf.Add(new LabelIsIr(levelVar, label, false, getFreshToggleVar()));
+                                    clauseCnf.Add(new LabelIsIr(levelVar, label, false, getFreshToggleVar()));
+                                    clauseDnf.Add(new LabelIsIr(levelVar, label, true, getFreshToggleVar()));
+                                    clauseCnf.Add(new LabelIsIr(levelVar, label, true, getFreshToggleVar()));
                                 }
 
                                 if (enableColorSynthesis) {
@@ -88,10 +88,10 @@ namespace DataLabeling
 
                                 for (int i = 0; i < accumLevels.Count; i++) {
                                     for (int j = i + 1; j < accumLevels.Count; j++) {
-                                        clauseDnf.Add(new MatchIr(accumLevels[i], accumLevels[j], false, getFreshToggleVar()));
-                                        clauseCnf.Add(new MatchIr(accumLevels[i], accumLevels[j], false, getFreshToggleVar()));
-                                        clauseDnf.Add(new MatchIr(accumLevels[i], accumLevels[j], true, getFreshToggleVar()));
-                                        clauseCnf.Add(new MatchIr(accumLevels[i], accumLevels[j], true, getFreshToggleVar()));
+                                        clauseDnf.Add(new EqualLabelIr(accumLevels[i], accumLevels[j], false, getFreshToggleVar()));
+                                        clauseCnf.Add(new EqualLabelIr(accumLevels[i], accumLevels[j], false, getFreshToggleVar()));
+                                        clauseDnf.Add(new EqualLabelIr(accumLevels[i], accumLevels[j], true, getFreshToggleVar()));
+                                        clauseCnf.Add(new EqualLabelIr(accumLevels[i], accumLevels[j], true, getFreshToggleVar()));
                                         clauseDnf.Add(new IOUIr(accumLevels[i], accumLevels[j], getFreshRealVar(), getFreshToggleVar()));
                                         clauseCnf.Add(new IOUIr(accumLevels[i], accumLevels[j], getFreshRealVar(), getFreshToggleVar()));
                                         clauseDnf.Add(new ContainmentIr(accumLevels[i], accumLevels[j], getFreshRealVar(), getFreshToggleVar()));

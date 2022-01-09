@@ -162,18 +162,33 @@ namespace DataLabeling
         }
     }
 
-    public class Match : BooleanAst
+    public class LabelIs : BooleanAst
     {
-        public ObjectAst ObjectA { get; private set; }
-        public ObjectAst ObjectB { get; private set; }
+        public readonly ObjectVariable ObjVar;
+        public readonly ObjectLiteral ObjLit;
 
-        public Match(ObjectAst objectA, ObjectAst objectB) {
-            ObjectA = objectA;
-            ObjectB = objectB;
+        public LabelIs(ObjectVariable objVar, ObjectLiteral objLit) {
+            ObjVar = objVar;
+            ObjLit = objLit;
         }
 
         public override string ToString() {
-            return string.Format("Match({0}, {1})", ObjectA.ToString(), ObjectB.ToString());
+            return string.Format("LabelIs({0}, {1})", ObjVar.ToString(), ObjLit.ToString());
+        }
+    }
+
+    public class EqualLabel : BooleanAst
+    {
+        public readonly ObjectVariable ObjectA;
+        public readonly ObjectVariable ObjectB;
+
+        public EqualLabel(ObjectVariable objA, ObjectVariable objB) {
+            ObjectA = objA;
+            ObjectB = objB;
+        }
+
+        public override string ToString() {
+            return string.Format("EqualLabel({0}, {1})", ObjectA.ToString(), ObjectB.ToString());
         }
     }
 
@@ -220,29 +235,33 @@ namespace DataLabeling
         }
     }
 
-    public class Any : BooleanAst
+    public class Exists : BooleanAst
     {
-        public PredicateLambda Predicate { get; private set; }
+        public ObjectVariable VarName { get; private set; }
+        public BooleanAst Body { get; private set; }
 
-        public Any(PredicateLambda predicate) {
-            Predicate = predicate;
+        public Exists(ObjectVariable varName, BooleanAst body) {
+            VarName = varName;
+            Body = body;
         }
 
         public override string ToString() {
-            return string.Format("Any({0})", Predicate.ToString());
+            return string.Format("exists {0} . ({1})", VarName.ToString(), Body.ToString());
         }
     }
 
-    public class All : BooleanAst
+    public class Forall : BooleanAst
     {
-        public PredicateLambda Predicate { get; private set; }
+        public ObjectVariable VarName { get; private set; }
+        public BooleanAst Body { get; private set; }
 
-        public All(PredicateLambda predicate) {
-            Predicate = predicate;
+        public Forall(ObjectVariable varName, BooleanAst body) {
+            VarName = varName;
+            Body = body;
         }
 
         public override string ToString() {
-            return string.Format("All({0})", Predicate.ToString());
+            return string.Format("forall {0} . ({1})", VarName.ToString(), Body.ToString());
         }
     }
 

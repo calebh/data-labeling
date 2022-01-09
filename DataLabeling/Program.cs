@@ -7,7 +7,9 @@ namespace DataLabeling
     public class Program
     {
         public static void Main(string[] args) {
-            string exampleFile = "images/lifeguard.json";
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+
+            string exampleFile = "images/guitarist.json";
             List<IOExample> examples = Json.JsonMethods.Read(exampleFile);
 
             Console.WriteLine("Is color important in these images? (y/n)");

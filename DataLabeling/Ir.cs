@@ -227,7 +227,7 @@ namespace DataLabeling
 
         public override BooleanAst? Compile(Model z3Solution) {
             if (ToggleVar == null || ToggleSolution(z3Solution)) {
-                return new Any(new PredicateLambda(ObjVar, Inner.Compile(z3Solution)));
+                return new Exists(ObjVar, Inner.Compile(z3Solution));
             } else {
                 return null;
             }
@@ -270,7 +270,7 @@ namespace DataLabeling
 
         public override BooleanAst? Compile(Model z3Solution) {
             if (ToggleVar == null || ToggleSolution(z3Solution)) {
-                return new All(new PredicateLambda(ObjVar, Inner.Compile(z3Solution)));
+                return new Forall(ObjVar, Inner.Compile(z3Solution));
             } else {
                 return null;
             }
@@ -325,69 +325,38 @@ namespace DataLabeling
         }
     }
 
-    public class MatchIr : Ir
+    public class LabelIsIr : Ir
     {
-        public readonly ObjectAst ObjA;
-        public readonly ObjectAst ObjB;
+        public readonly ObjectVariable ObjVar;
+        public readonly ObjectLiteral ObjLit;
         public readonly bool Negated;
 
-        private readonly bool IsVariableMatch;
+        public const int COST = 1;
+        public const int NEGATED_COST = 2;
 
-        // Cost when one of the ObjA or ObjB is an object literal
-        public const int LITERAL_COST = 1;
-        // Cost when one of the ObjA or ObjB is an object literal, and the match expression is overall negated
-        public const int NEGATED_LITERAL_COST = 2;
-        // Cost when both of the ObjA and ObjB are object variables
-        public const int VARIABLE_COST = 2;
-        // Cost when both of the ObjA and ObjB are object variables, and the match expression is overall negated
-        public const int NEGATED_VARIABLE_COST = 3;
-
-        public MatchIr(ObjectAst objA, ObjectAst objB, bool negated, BoolExpr toggleVar) : base(toggleVar) {
-            ObjA = objA;
-            ObjB = objB;
+        public LabelIsIr(ObjectVariable objVar, ObjectLiteral objLit, bool negated, BoolExpr toggleVar) : base(toggleVar) {
+            ObjVar = objVar;
+            ObjLit = objLit;
             Negated = negated;
-
-            IsVariableMatch = ObjA is ObjectVariable && ObjB is ObjectVariable;
         }
 
         public override Ir Apply(ImmutableDictionary<ObjectVariable, Tuple<BoundingBox, ObjectLiteral>> env, IOExample example) {
-            ObjectAst a = ObjA;
-            ObjectAst b = ObjB;
-
-            if ((ObjA is ObjectVariable) && env.ContainsKey((ObjectVariable) ObjA)) {
-                a = env[(ObjectVariable)ObjA].Item2;
-            }
-            if ((ObjB is ObjectVariable) && env.ContainsKey((ObjectVariable) ObjB)) {
-                b = env[(ObjectVariable)ObjB].Item2;
-            }
-
-            if ((a is ObjectLiteral) && (b is ObjectLiteral)) {
-                bool eq = ((ObjectLiteral)a).Equals((ObjectLiteral)b);
+            if (env.ContainsKey(ObjVar)) {
+                ObjectLiteral binding = env[ObjVar].Item2;
+                bool eq = binding.Equals(ObjLit);
                 if (Negated) {
                     return new BooleanIr(!eq, ToggleVar);
                 } else {
                     return new BooleanIr(eq, ToggleVar);
                 }
             } else {
-                return new MatchIr(a, b, Negated, ToggleVar);
+                throw new ArgumentException("Could not find variable named " + ObjVar.ToString() + " in passed environment");
             }
         }
 
         public override ArithExpr? ToggleVarSum(Context ctx) {
             if (ToggleVar != null) {
-                if (Negated) {
-                    if (IsVariableMatch) {
-                        return (ArithExpr)ctx.MkITE(ToggleVar, ctx.MkInt(NEGATED_VARIABLE_COST), ctx.MkInt(0));
-                    } else {
-                        return (ArithExpr)ctx.MkITE(ToggleVar, ctx.MkInt(NEGATED_LITERAL_COST), ctx.MkInt(0));
-                    }
-                } else {
-                    if (IsVariableMatch) {
-                        return (ArithExpr)ctx.MkITE(ToggleVar, ctx.MkInt(VARIABLE_COST), ctx.MkInt(0));
-                    } else {
-                        return (ArithExpr)ctx.MkITE(ToggleVar, ctx.MkInt(LITERAL_COST), ctx.MkInt(0));
-                    }
-                }
+                return (ArithExpr)ctx.MkITE(ToggleVar, ctx.MkInt(Negated ? NEGATED_COST : COST), ctx.MkInt(0));
             } else {
                 return null;
             }
@@ -399,7 +368,7 @@ namespace DataLabeling
 
         public override BooleanAst? Compile(Model z3Solution) {
             if (ToggleVar == null || ToggleSolution(z3Solution)) {
-                Match m = new Match(ObjA, ObjB);
+                LabelIs m = new LabelIs(ObjVar, ObjLit);
                 if (Negated) {
                     return new NotBool(m);
                 } else {
@@ -412,19 +381,70 @@ namespace DataLabeling
 
         public override List<Tuple<BoolExpr, uint>> CollectToggleVars(List<Tuple<BoolExpr, uint>> toggleVars) {
             if (ToggleVar != null) {
+                toggleVars.Add(Tuple.Create<BoolExpr, uint>(ToggleVar, (uint) (Negated ? NEGATED_COST : COST)));
+            }
+            return toggleVars;
+        }
+    }
+
+    public class EqualLabelIr : Ir
+    {
+        public readonly ObjectVariable ObjA;
+        public readonly ObjectVariable ObjB;
+        public readonly bool Negated;
+
+        public const int COST = 2;
+        public const int NEGATED_COST = 3;
+
+        public EqualLabelIr(ObjectVariable objA, ObjectVariable objB, bool negated, BoolExpr toggleVar) : base(toggleVar) {
+            ObjA = objA;
+            ObjB = objB;
+            Negated = negated;
+        }
+
+        public override Ir Apply(ImmutableDictionary<ObjectVariable, Tuple<BoundingBox, ObjectLiteral>> env, IOExample example) {
+            if (env.ContainsKey(ObjA) && env.ContainsKey(ObjB)) {
+                ObjectLiteral boundA = env[ObjA].Item2;
+                ObjectLiteral boundB = env[ObjB].Item2;
+                bool eq = boundA.Equals(boundB);
                 if (Negated) {
-                    if (IsVariableMatch) {
-                        toggleVars.Add(Tuple.Create<BoolExpr, uint>(ToggleVar, NEGATED_VARIABLE_COST));
-                    } else {
-                        toggleVars.Add(Tuple.Create<BoolExpr, uint>(ToggleVar, NEGATED_LITERAL_COST));
-                    }
+                    return new BooleanIr(!eq, ToggleVar);
                 } else {
-                    if (IsVariableMatch) {
-                        toggleVars.Add(Tuple.Create<BoolExpr, uint>(ToggleVar, VARIABLE_COST));
-                    } else {
-                        toggleVars.Add(Tuple.Create<BoolExpr, uint>(ToggleVar, LITERAL_COST));
-                    }
+                    return new BooleanIr(eq, ToggleVar);
                 }
+            } else {
+                throw new ArgumentException("Unable to find " + ObjA.ToString() + " or " + ObjB.ToString() + " in the current environment");
+            }
+        }
+
+        public override ArithExpr? ToggleVarSum(Context ctx) {
+            if (ToggleVar != null) {
+                return (ArithExpr)ctx.MkITE(ToggleVar, ctx.MkInt(Negated ? NEGATED_COST : COST), ctx.MkInt(0));
+            } else {
+                return null;
+            }
+        }
+
+        public override BoolExpr ToZ3(Optimize optimize, Context ctx, Form form) {
+            throw new NotImplementedException("Unable to convert partially compiled formula to z3 form. This formula contains a match expression. Try compiling to completely reify all match statements");
+        }
+
+        public override BooleanAst? Compile(Model z3Solution) {
+            if (ToggleVar == null || ToggleSolution(z3Solution)) {
+                EqualLabel m = new EqualLabel(ObjA, ObjB);
+                if (Negated) {
+                    return new NotBool(m);
+                } else {
+                    return m;
+                }
+            } else {
+                return null;
+            }
+        }
+
+        public override List<Tuple<BoolExpr, uint>> CollectToggleVars(List<Tuple<BoolExpr, uint>> toggleVars) {
+            if (ToggleVar != null) {
+                toggleVars.Add(Tuple.Create<BoolExpr, uint>(ToggleVar, (uint)(Negated ? NEGATED_COST : COST)));
             }
             return toggleVars;
         }
