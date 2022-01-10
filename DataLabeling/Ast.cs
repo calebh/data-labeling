@@ -14,9 +14,9 @@ namespace DataLabeling
 
     public class ProgramAst : Ast
     {
-        public List<MapApply> ApplyList { get; private set; }
+        public List<LabelApply> ApplyList { get; private set; }
 
-        public ProgramAst(List<MapApply> applyList) {
+        public ProgramAst(List<LabelApply> applyList) {
             ApplyList = applyList;
         }
 
@@ -25,18 +25,33 @@ namespace DataLabeling
         }
     }
 
-    public class MapApply : Ast
+    public class LabelApply : Ast
     {
         public ObjectLiteral Action { get; private set; }
         public ObjectList ObjectList { get; private set; }
 
-        public MapApply(ObjectLiteral action, ObjectList objectList) {
+        public LabelApply(ObjectLiteral action, ObjectList objectList) {
             Action = action;
             ObjectList = objectList;
         }
 
         public override string ToString() {
-            return String.Format("Map({0}, {1})", Action.ToString(), ObjectList.ToString());
+            return String.Format("LabelApply({0}, {1})", Action.ToString(), ObjectList.ToString());
+        }
+    }
+
+    public class GroupApply : Ast
+    {
+        public GroupLiteral Action { get; private set; }
+        public ObjectList ObjectList { get; private set; }
+
+        public GroupApply(GroupLiteral action, ObjectList objectList) {
+            Action = action;
+            ObjectList = objectList;
+        }
+
+        public override string ToString() {
+            return String.Format("GroupApply({0}, {1})", Action.ToString(), ObjectList.ToString());
         }
     }
 
@@ -84,6 +99,32 @@ namespace DataLabeling
 
         public override bool Equals(object? obj) {
             ObjectLiteral other = obj as ObjectLiteral;
+            if (other == null) {
+                return false;
+            } else {
+                return LabelName.Equals(other.LabelName);
+            }
+        }
+
+        public override int GetHashCode() {
+            return LabelName.GetHashCode();
+        }
+
+        public override string ToString() {
+            return String.Format("\"{0}\"", LabelName);
+        }
+    }
+
+    public class GroupLiteral
+    {
+        public string LabelName { get; private set; }
+
+        public GroupLiteral(string labelName) {
+            LabelName = labelName;
+        }
+
+        public override bool Equals(object? obj) {
+            GroupLiteral other = obj as GroupLiteral;
             if (other == null) {
                 return false;
             } else {

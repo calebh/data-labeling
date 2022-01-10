@@ -37,11 +37,13 @@ namespace DataLabeling.Json
     {
         public string Label { get; set; }
         public string? PreciseLabel { get; set; }
+        public string? GroupLabel { get; set; }
         public BoundingBox Box { get; set; }
 
-        public BoxInfo(string label, string? preciseLabel, BoundingBox box) {
+        public BoxInfo(string label, string? preciseLabel, string? groupLabel, BoundingBox box) {
             Label = label;
             PreciseLabel = preciseLabel;
+            GroupLabel = groupLabel;
             Box = box;
         }
     }

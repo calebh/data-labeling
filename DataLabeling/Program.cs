@@ -9,7 +9,7 @@ namespace DataLabeling
         public static void Main(string[] args) {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
 
-            string exampleFile = "images/guitarist.json";
+            string exampleFile = "images/lifeguard.json";
             List<IOExample> examples = Json.JsonMethods.Read(exampleFile);
 
             Console.WriteLine("Is color important in these images? (y/n)");
@@ -20,11 +20,18 @@ namespace DataLabeling
             string isPlacementImportantAnswer = Console.ReadLine();
             bool enablePlacementSynthesis = isPlacementImportantAnswer == "y" || isPlacementImportantAnswer == "yes";
 
-            List<List<MapApply>> ast = Synthesize.DoSynthesis(examples, enableColorSynthesis, enablePlacementSynthesis);
+            var asts = Synthesize.DoSynthesis(examples, enableColorSynthesis, enablePlacementSynthesis);
 
-            foreach (List<MapApply> mapApplyEquivalenceClass in ast) {
-                Console.WriteLine("Equivalence class for " + mapApplyEquivalenceClass[0].Action.LabelName);
-                foreach (MapApply program in mapApplyEquivalenceClass) {
+            foreach (List<LabelApply> labelApplyEqClass in asts.Item1) {
+                Console.WriteLine("Equivalence class for " + labelApplyEqClass[0].Action.LabelName);
+                foreach (LabelApply program in labelApplyEqClass) {
+                    Console.WriteLine(program);
+                }
+            }
+
+            foreach (List<GroupApply> groupApplyEqClass in asts.Item2) {
+                Console.WriteLine("Equivalence class for " + groupApplyEqClass[0].Action.LabelName);
+                foreach (GroupApply program in groupApplyEqClass) {
                     Console.WriteLine(program);
                 }
             }
