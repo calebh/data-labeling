@@ -8,6 +8,13 @@ using System.Threading.Tasks;
 
 namespace DataLabeling
 {
+    public struct SynthesisConfig
+    {
+        public bool UseColorSynthesis;
+        public bool UsePlacementSynthesis;
+        public bool UseContainmentSynthesis;
+    }
+
     public static class Synthesize
     {
         private static List<ObjectLiteral> GenerateBaseLibrary(List<IOExample> examples) {
@@ -40,7 +47,7 @@ namespace DataLabeling
             return result.ToList();
         }
 
-        public static Tuple<List<List<LabelApply>>, List<List<GroupApply>>> DoSynthesis(List<IOExample> examples, bool enableColorSynthesis, bool enablePlacementSynthesis) {
+        public static Tuple<List<List<LabelApply>>, List<List<GroupApply>>> DoSynthesis(List<IOExample> examples, SynthesisConfig config) {
             List<ObjectLiteral> baseLibrary = GenerateBaseLibrary(examples);
             List<ObjectLiteral> preciseLibrary = GeneratePreciseLibrary(examples);
 
@@ -48,7 +55,7 @@ namespace DataLabeling
 
             foreach (ObjectLiteral preciseLabel in preciseLibrary) {
                 List<LabelApply> synthResult =
-                    RunSynthesis(examples, enableColorSynthesis, enablePlacementSynthesis,
+                    RunSynthesis(examples, config,
                         baseLibrary, preciseLabel,
                         (ObjectLiteral label, Filter f) => new LabelApply(label, f),
                         (IOExample example, BoundingBox bbox, ObjectLiteral label) => example.GetPrecise(bbox).Contains(label));
@@ -61,7 +68,8 @@ namespace DataLabeling
 
             foreach (GroupLiteral groupLabel in groupLibrary) {
                 List<GroupApply> synthResult =
-                    RunSynthesis(examples, enableColorSynthesis, enablePlacementSynthesis, baseLibrary, groupLabel,
+                    RunSynthesis(examples, config,
+                        baseLibrary, groupLabel,
                         (GroupLiteral label, Filter f) => new GroupApply(label, f),
                         (IOExample example, BoundingBox bbox, GroupLiteral label) => example.GetGroups(bbox).Contains(label));
                 groupApplies.Add(synthResult);
@@ -70,7 +78,7 @@ namespace DataLabeling
             return Tuple.Create(labelApplies, groupApplies);
         }
 
-        private static List<T> RunSynthesis<T, U>(List<IOExample> examples, bool enableColorSynthesis, bool enablePlacementSynthesis, List<ObjectLiteral> baseLibrary, U preciseLabel, Func<U, Filter, T> newT, Func<IOExample, BoundingBox, U, bool> isActionApplied) {
+        private static List<T> RunSynthesis<T, U>(List<IOExample> examples, SynthesisConfig config, List<ObjectLiteral> baseLibrary, U preciseLabel, Func<U, Filter, T> newT, Func<IOExample, BoundingBox, U, bool> isActionApplied) {
             using (Context ctx = new Context(new Dictionary<string, string>() { { "model", "true" } })) {
                 int varIndex = 0;
                 Func<BoolExpr> getFreshToggleVar = () => {
@@ -116,7 +124,7 @@ namespace DataLabeling
                                 clauseCnf.Add(new LabelIsIr(levelVar, label, true, getFreshToggleVar()));
                             }
 
-                            if (enableColorSynthesis) {
+                            if (config.UseColorSynthesis) {
                                 clauseDnf.Add(new ColorComparisonIr(levelVar, getFreshRealVar(), getFreshRealVar(), getFreshRealVar(), getFreshRealVar(), getFreshToggleVar()));
                                 clauseCnf.Add(new ColorComparisonIr(levelVar, getFreshRealVar(), getFreshRealVar(), getFreshRealVar(), getFreshRealVar(), getFreshToggleVar()));
                             }
@@ -127,13 +135,15 @@ namespace DataLabeling
                                     clauseCnf.Add(new EqualLabelIr(accumLevels[i], accumLevels[j], false, getFreshToggleVar()));
                                     clauseDnf.Add(new EqualLabelIr(accumLevels[i], accumLevels[j], true, getFreshToggleVar()));
                                     clauseCnf.Add(new EqualLabelIr(accumLevels[i], accumLevels[j], true, getFreshToggleVar()));
-                                    clauseDnf.Add(new IOUIr(accumLevels[i], accumLevels[j], getFreshRealVar(), getFreshToggleVar()));
-                                    clauseCnf.Add(new IOUIr(accumLevels[i], accumLevels[j], getFreshRealVar(), getFreshToggleVar()));
-                                    clauseDnf.Add(new ContainmentIr(accumLevels[i], accumLevels[j], getFreshRealVar(), getFreshToggleVar()));
-                                    clauseCnf.Add(new ContainmentIr(accumLevels[i], accumLevels[j], getFreshRealVar(), getFreshToggleVar()));
-                                    clauseDnf.Add(new ContainmentIr(accumLevels[j], accumLevels[i], getFreshRealVar(), getFreshToggleVar()));
-                                    clauseCnf.Add(new ContainmentIr(accumLevels[j], accumLevels[i], getFreshRealVar(), getFreshToggleVar()));
-                                    if (enablePlacementSynthesis) {
+                                    if (config.UseContainmentSynthesis) {
+                                        clauseDnf.Add(new IOUIr(accumLevels[i], accumLevels[j], getFreshRealVar(), getFreshToggleVar()));
+                                        clauseCnf.Add(new IOUIr(accumLevels[i], accumLevels[j], getFreshRealVar(), getFreshToggleVar()));
+                                        clauseDnf.Add(new ContainmentIr(accumLevels[i], accumLevels[j], getFreshRealVar(), getFreshToggleVar()));
+                                        clauseCnf.Add(new ContainmentIr(accumLevels[i], accumLevels[j], getFreshRealVar(), getFreshToggleVar()));
+                                        clauseDnf.Add(new ContainmentIr(accumLevels[j], accumLevels[i], getFreshRealVar(), getFreshToggleVar()));
+                                        clauseCnf.Add(new ContainmentIr(accumLevels[j], accumLevels[i], getFreshRealVar(), getFreshToggleVar()));
+                                    }
+                                    if (config.UsePlacementSynthesis) {
                                         clauseDnf.Add(new LeftIr(accumLevels[i], accumLevels[j], getFreshToggleVar()));
                                         clauseCnf.Add(new LeftIr(accumLevels[i], accumLevels[j], getFreshToggleVar()));
                                         clauseDnf.Add(new RightIr(accumLevels[i], accumLevels[j], getFreshToggleVar()));
@@ -184,7 +194,6 @@ namespace DataLabeling
                             var compiled_cnf_0 = cnf.Apply(initEnv, example);
                             var compiled_cnf = compiled_cnf_0.ToZ3(s_cnf, ctx, Form.CNF);
                             bool actionApplied = isActionApplied(example, box, preciseLabel);
-                            //bool actionApplied = example.GetPrecise(box).Contains(preciseLabel);
                             BoolExpr actionAppliedZ3 = ctx.MkBool(actionApplied);
                             s_dnf.Add(ctx.MkIff(compiled_dnf, actionAppliedZ3));
                             s_cnf.Add(ctx.MkIff(compiled_cnf, actionAppliedZ3));
@@ -208,7 +217,7 @@ namespace DataLabeling
                     Console.WriteLine("Synthesizing with " + numClauses + " at " + quantifierNestedLevel + " deep");
 
                     Action<Optimize, Ir, List<BoolExpr>> runZ3 = (Optimize s, Ir nf, List<BoolExpr> toggleVars) => {
-                        while (bestPrograms.Count < 1) {
+                        while (bestPrograms.Count < 5) {
                             if (s.Check() == Status.SATISFIABLE) {
                                 Model m = s.Model;
                                 int objectiveValue = ((IntNum)m.Eval(nf.ToggleVarSum(ctx)).Simplify()).Int;

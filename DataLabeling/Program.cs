@@ -20,7 +20,17 @@ namespace DataLabeling
             string isPlacementImportantAnswer = Console.ReadLine();
             bool enablePlacementSynthesis = isPlacementImportantAnswer == "y" || isPlacementImportantAnswer == "yes";
 
-            var asts = Synthesize.DoSynthesis(examples, enableColorSynthesis, enablePlacementSynthesis);
+            Console.WriteLine("Is the fractional containment of objects important in these images? (y/n)");
+            string isContainmentImportantAnswer = Console.ReadLine();
+            bool enableContainmentSynthesis = isContainmentImportantAnswer == "y" || isContainmentImportantAnswer == "yes";
+
+            SynthesisConfig config = new SynthesisConfig() {
+                UseColorSynthesis = enableColorSynthesis,
+                UsePlacementSynthesis = enablePlacementSynthesis,
+                UseContainmentSynthesis = enableContainmentSynthesis
+            };
+
+            var asts = Synthesize.DoSynthesis(examples, config);
 
             foreach (List<LabelApply> labelApplyEqClass in asts.Item1) {
                 Console.WriteLine("Equivalence class for " + labelApplyEqClass[0].Action.LabelName);
